@@ -1,0 +1,23 @@
+{
+  "name": "ticket-control",
+  "version": "1.0.0",
+  "description": "JIRA ticket viewer with Claude Code integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "concurrently \"node --watch server.js\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client",
+    "test": "node --test",
+    "mcp:discover": "node scripts/discover-jira-ids.js",
+    "mcp:install": "node scripts/install-mcp.js",
+    "mcp:smoke": "node scripts/smoke-create.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

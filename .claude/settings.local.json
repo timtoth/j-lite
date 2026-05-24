@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(chmod +x C:/GHSource/ticket-control/setup.sh)",
+      "Bash(node -e ':*)",
+      "Bash(wc -l /c/GHSource/ticket-control/client/src/App.tsx /c/GHSource/ticket-control/client/src/*.ts /c/GHSource/ticket-control/client/src/components/*.tsx /c/GHSource/ticket-control/jira.js /c/GHSource/ticket-control/routes/*.js)",
+      "Bash(npx vite:*)",
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(ls *)",
+      "Bash(echo \"Process exited/timed out with code $?\")",
+      "Bash(bash *)"
+    ]
+  }
+}
