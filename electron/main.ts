@@ -15,6 +15,7 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 let serverChild: ChildProcess | null = null;
 let serverPort: number | null = null;
 let mainWindow: BrowserWindow | null = null;
+let logStream: fs.WriteStream | null = null;
 
 const lock = app.requestSingleInstanceLock();
 if (!lock) {
@@ -64,7 +65,11 @@ async function startServer(): Promise<number> {
   serverChild = spawn(command, args, opts);
 
   const logPath = path.join(dir, "app.log");
-  const logStream = fs.createWriteStream(logPath, { flags: "a" });
+  if (logStream) {
+    logStream.end();
+    logStream = null;
+  }
+  logStream = fs.createWriteStream(logPath, { flags: "a" });
   serverChild.stdout?.pipe(logStream);
   serverChild.stderr?.pipe(logStream);
 
@@ -202,5 +207,9 @@ app.on("before-quit", async (event) => {
     });
   });
   if (!killed) child.kill("SIGKILL");
+  if (logStream) {
+    logStream.end();
+    logStream = null;
+  }
   app.exit(0);
 });
