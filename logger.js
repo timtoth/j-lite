@@ -1,7 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 
-const logStream = fs.createWriteStream(path.join(__dirname, "app.log"), { flags: "a" });
+function resolveLogPath() {
+  const dir = process.env.TC_CONFIG_DIR || __dirname;
+  return path.join(dir, "app.log");
+}
+
+const logStream = fs.createWriteStream(resolveLogPath(), { flags: "a" });
 
 function formatMessage(level, category, message) {
   return `[${new Date().toISOString()}] [${level}] [${category}] ${message}`;
