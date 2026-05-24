@@ -34,3 +34,17 @@
 - [ ] Verify Claude Code MCP passthrough executes JIRA operations (e.g., transition a ticket)
 - [ ] Confirm page refresh re-fetches the latest ticket data from JIRA
 - [ ] End-to-end test: move a ticket through statuses via the text area
+
+## Electron packaged-app smoke test
+
+Run after `npm run make` on each target OS:
+
+- [ ] Installer runs and launches the app.
+- [ ] First launch: settings UI opens; saving JIRA creds writes to `userData/config.json`.
+- [ ] `userData/app.log` is created and grows during use.
+- [ ] Folder picker (`window.tc.pickFolder`) opens the OS-native dialog.
+- [ ] Tickets list loads.
+- [ ] Chat/instruct round-trip works (requires `claude` on PATH).
+- [ ] On first launch with `claude` on PATH, `userData/electron-state.json` shows `mcpRegistered: true`.
+- [ ] Quit closes the Electron window AND terminates the spawned `node server.js`.
+- [ ] Re-launch reads existing `config.json`; MCP is not re-registered.

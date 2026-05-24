@@ -6,12 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 All commands run from the repo root unless noted.
 
-- `npm run dev` — runs the Express API (`node --watch server.js` on port 3000) and the Vite dev server (port 5173) concurrently. The Vite config proxies `/api` to `:3000`, so use `http://localhost:5173` during development.
-- `npm run build` — type-checks and builds the React client into `client/dist/`. The Express server serves that directory in production via `npm start`.
-- `npm start` — runs the production server only; requires a prior `npm run build`.
-- `npm test` — runs all `node --test` suites (currently `mcp/*.test.js`). Run a single file with `node --test mcp/jira-create.test.js`. Filter to one test with `node --test --test-name-pattern="<regex>"`.
-- `npm run mcp:discover` — one-time discovery script. Calls JIRA to populate `JIRA_TEAM_FIELD_ID`, `JIRA_TEAM_ID`, and `JIRA_ACCOUNT_ID` in `.env`. Required before the create-ticket MCP will work.
-- `npm run mcp:install` — registers `mcp/create-ticket-server.mjs` with the local Claude Code CLI at user scope (idempotent).
+- `npm start` — launches the Electron app in dev mode (Forge starts Vite for renderer/main/preload, opens an Electron window). The Express server is spawned by Electron main on a random port.
+- `npm run dev:web` — runs the Express API and the Vite dev server *without* Electron, for browser-only debugging. Express on `:3000`, Vite on `:5173`.
+- `npm run build` — type-checks and builds the React client into `client/dist/`.
+- `npm run package` — builds the Electron app into `out/<app>-<platform>-<arch>/` without producing an installer. Useful for smoke-testing the packaged layout.
+- `npm run make` — produces installers in `out/make/` for the host OS (Squirrel `.exe` on Windows, `.dmg`/`.zip` on macOS, `.deb`/`.rpm` on Linux). Run on the target OS — there is no cross-compile.
+- `npm test` — runs all `node --test` suites. Run a single file with `node --test <file>`. Filter to one test with `node --test --test-name-pattern="<regex>"`.
+- `npm run mcp:discover` — one-time discovery script. Populates the `JIRA_TEAM_FIELD_ID`, `JIRA_TEAM_ID`, `JIRA_ACCOUNT_ID` fields in `config.json`.
+- `npm run mcp:install` — manual escape hatch for registering the create-ticket MCP with the user's `claude` CLI. The packaged app runs the equivalent automatically on first launch.
 - `npm run mcp:smoke` — smoke test for the MCP create-ticket flow.
 
 There is no lint config; do not invent one.
@@ -42,6 +44,20 @@ A standalone MCP stdio server (`create-ticket-server.mjs`) exposing one tool, `c
 
 ### Production serving
 `server.js` mounts the API routers and then a catch-all `app.get("*")` that serves `client/dist/index.html`, so client routes work on hard refresh once `npm run build` has been run.
+
+### Electron host (`electron/`)
+
+When run as the desktop app (`npm start` / installed build), an Electron main process wraps the existing stack:
+
+- **Main** (`electron/main.ts`) creates the `BrowserWindow`, spawns `node server.js` as a child on a random localhost port, owns the native folder-picker dialog, registers the bundled MCP with the user's `claude` CLI on first launch, and tears the child down on quit.
+- **Preload** (`electron/preload.ts`) exposes a tiny `window.tc` API to the renderer (`pickFolder`, `getServerPort`).
+- **Server child** is the unchanged `server.js`, launched with `cwd: app.getPath('userData')` and env vars `PORT=<random>` and `TC_CONFIG_DIR=<userData>`. `config.js` and `logger.js` honor `TC_CONFIG_DIR` so `config.json` and `app.log` live next to each other in `userData`.
+
+Pure helpers in `electron/` (`paths.js`, `free-port.js`, `spawn-args.js`, `mcp-register.js`) are kept in plain JS so they can be unit-tested via `node --test` without an Electron runtime. The `.ts` files in the same folder are thin re-exports for type safety in `main.ts` and `preload.ts`.
+
+The `extraResource` list in `forge.config.ts` ships the existing CommonJS server tree (`server.js`, `routes/`, `lib/`, `jira.js`, `config.js`, `logger.js`, `mcp/`) into `process.resourcesPath` so the spawned child can find them.
+
+`/api/browse-folder` no longer exists — the renderer calls `window.tc.pickFolder()` instead.
 
 ## Setup notes
 
