@@ -7,6 +7,11 @@ export default defineConfig({
     extensions: [".ts", ".js", ".mjs", ".json"],
   },
   build: {
+    commonjsOptions: {
+      // Allow Rollup's CommonJS plugin to extract named exports from our
+      // .impl.js source files (default include is node_modules only).
+      include: [/node_modules/, /\.impl\.js$/],
+    },
     rollupOptions: {
       external: ["electron"],
     },
