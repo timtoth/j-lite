@@ -27,3 +27,8 @@ config.json.tmp
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Electron
+out/
+.vite-port
+electron-state.json
