@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "concurrently \"node --watch server.js\" \"npm run dev --prefix client\"",
+    "dev:web": "concurrently \"node --watch server.js\" \"npm run dev --prefix client\"",
     "build": "npm run build --prefix client",
     "test": "node --test",
     "mcp:discover": "node scripts/discover-jira-ids.js",
@@ -18,6 +18,15 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-dmg": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
+    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.11.2",
+    "concurrently": "^9.2.1",
+    "electron": "^32.3.3",
+    "typescript": "~5.7.0"
   }
 }
