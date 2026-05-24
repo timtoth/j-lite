@@ -108,3 +108,30 @@ test("isConfigured is true when all required fields present", () => {
   const config = require("./config");
   assert.equal(config.isConfigured(), true);
 });
+
+test("TC_CONFIG_DIR overrides cwd for config location", () => {
+  const overrideDir = fs.mkdtempSync(path.join(os.tmpdir(), "tc-override-"));
+  try {
+    process.env.TC_CONFIG_DIR = overrideDir;
+    process.env.JIRA_BASE_URL = "https://override.atlassian.net";
+    process.env.JIRA_EMAIL = "o@example.com";
+    process.env.JIRA_API_TOKEN = "tok";
+
+    const config = require("./config");
+    config.update({ JIRA_BASE_URL: "https://override.atlassian.net" });
+
+    assert.equal(
+      fs.existsSync(path.join(overrideDir, "config.json")),
+      true,
+      "config.json should be in TC_CONFIG_DIR"
+    );
+    assert.equal(
+      fs.existsSync(path.join(tmpDir, "config.json")),
+      false,
+      "config.json should NOT be in cwd"
+    );
+  } finally {
+    delete process.env.TC_CONFIG_DIR;
+    fs.rmSync(overrideDir, { recursive: true, force: true });
+  }
+});

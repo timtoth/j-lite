@@ -15,7 +15,8 @@ const REQUIRED_KEYS = ["JIRA_BASE_URL", "JIRA_EMAIL", "JIRA_API_TOKEN"];
 const PRODUCT_FIELD_DEFAULT = "customfield_12037";
 
 function configPath() {
-  return path.join(process.cwd(), "config.json");
+  const dir = process.env.TC_CONFIG_DIR || process.cwd();
+  return path.join(dir, "config.json");
 }
 
 function seedFromEnv() {
