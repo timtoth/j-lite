@@ -61,9 +61,13 @@ export async function sendInstruction(
 }
 
 export async function browseFolder(): Promise<string> {
-  const res = await fetch("/api/browse-folder");
-  const data = await res.json();
-  return data.folder || "";
+  if (window.tc?.pickFolder) {
+    const result = await window.tc.pickFolder();
+    return result || "";
+  }
+  // Browser-only dev (npm run dev:web): the Windows-only HTTP folder
+  // route was removed; user types the path manually.
+  return "";
 }
 
 export async function fetchEpics(): Promise<ListResponse<Epic>> {

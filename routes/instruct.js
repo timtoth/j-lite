@@ -11,23 +11,6 @@ function log(message) {
 
 const TICKET_KEY_REGEX = /[A-Z][A-Z0-9]+-\d+/g;
 
-router.get("/api/browse-folder", (req, res) => {
-  const ps = spawn("powershell", [
-    "-NoProfile",
-    "-Command",
-    `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select project folder'; $f.ShowNewFolderButton = $false; if ($f.ShowDialog() -eq 'OK') { $f.SelectedPath } else { '' }`,
-  ], { stdio: ["ignore", "pipe", "pipe"] });
-
-  let stdout = "";
-  ps.stdout.on("data", (chunk) => { stdout += chunk; });
-  ps.on("error", () => {
-    res.json({ folder: "" });
-  });
-  ps.on("close", () => {
-    res.json({ folder: stdout.trim() });
-  });
-});
-
 router.post("/api/instruct", async (req, res) => {
   const { instruction, cwd, sessionId } = req.body;
 
