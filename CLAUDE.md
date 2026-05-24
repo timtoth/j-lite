@@ -31,7 +31,7 @@ The product is a two-pane JIRA dashboard. The **left pane reads JIRA directly vi
 2. Spawns `claude -p --output-format json --dangerously-skip-permissions [--resume <sessionId>] <prompt>`, optionally with a user-selected `cwd`.
 3. Parses the JSON envelope, returns `{ response, sessionId }`. The client persists `sessionId` and chat history in `localStorage` (`tc_chat`, `tc_folderPath`) so conversations resume across reloads.
 
-Folder selection on Windows uses a PowerShell `FolderBrowserDialog` shelled out from `GET /api/browse-folder`.
+Folder selection uses Electron's native `dialog.showOpenDialog` via `window.tc.pickFolder()` (see Electron host section). In browser-only dev (`npm run dev:web`) the picker returns empty and the user types the path manually.
 
 ### create-jira-ticket MCP (`mcp/`)
 A standalone MCP stdio server (`create-ticket-server.mjs`) exposing one tool, `create_jira_ticket`. It is **not** loaded by this app's server — it is registered with the user's Claude Code CLI via `npm run mcp:install`, so the CLI invoked by `/api/instruct` (and any other Claude Code session) can call it. Ticket creation logic lives in `mcp/jira-create.js`; HTTP plumbing in `lib/jira-client.js`. The tool requires the discovered env vars (`JIRA_TEAM_FIELD_ID`, `JIRA_TEAM_ID`, `JIRA_ACCOUNT_ID`, `JIRA_PRODUCT_FIELD_ID`) — without them it throws "MCP not configured; run npm run mcp:discover".
