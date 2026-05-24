@@ -4,7 +4,7 @@ const path = require("node:path");
 
 // We import the compiled module under test by requiring the .ts via ts-node?
 // Avoid that complexity: use plain JS for the helper and test it directly.
-const paths = require("./paths.js");
+const paths = require("./paths.impl.js");
 
 test("serverEntry uses resourcesPath when packaged", () => {
   const result = paths.serverEntry({

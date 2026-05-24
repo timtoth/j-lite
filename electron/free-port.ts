@@ -1,5 +1,3 @@
-const helper = require("./free-port.js");
+import { findFreePort as helper } from "./free-port.impl.js";
 
-export function findFreePort(): Promise<number> {
-  return helper.findFreePort();
-}
+export const findFreePort: () => Promise<number> = helper;

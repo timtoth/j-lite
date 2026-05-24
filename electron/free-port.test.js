@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
-const { findFreePort } = require("./free-port.js");
+const { findFreePort } = require("./free-port.impl.js");
 
 test("findFreePort returns a valid port number", async () => {
   const port = await findFreePort();

@@ -1,4 +1,4 @@
-const helper = require("./mcp-register.js");
+import { registerMcpIfNeeded as helper } from "./mcp-register.impl.js";
 
 export interface RegisterMcpInput {
   mcpEntry: string;
@@ -13,4 +13,4 @@ export interface RegisterMcpResult {
 
 export const registerMcpIfNeeded: (
   input: RegisterMcpInput
-) => Promise<RegisterMcpResult> = helper.registerMcpIfNeeded;
+) => Promise<RegisterMcpResult> = helper;

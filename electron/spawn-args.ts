@@ -1,4 +1,4 @@
-const helper = require("./spawn-args.js");
+import { buildServerSpawn as helper } from "./spawn-args.impl.js";
 
 export interface SpawnArgsInput {
   serverEntry: string;
@@ -17,4 +17,4 @@ export interface SpawnArgs {
   };
 }
 
-export const buildServerSpawn: (input: SpawnArgsInput) => SpawnArgs = helper.buildServerSpawn;
+export const buildServerSpawn: (input: SpawnArgsInput) => SpawnArgs = helper as (input: SpawnArgsInput) => SpawnArgs;

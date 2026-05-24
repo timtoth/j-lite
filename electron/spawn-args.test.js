@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { buildServerSpawn } = require("./spawn-args.js");
+const { buildServerSpawn } = require("./spawn-args.impl.js");
 
 test("buildServerSpawn includes serverEntry as the only positional arg", () => {
   const result = buildServerSpawn({

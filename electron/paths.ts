@@ -1,5 +1,5 @@
 import { app } from "electron";
-const helper = require("./paths.js");
+import { serverEntry as helperServerEntry, mcpEntry as helperMcpEntry } from "./paths.impl.js";
 
 interface PathEnv {
   isPackaged: boolean;
@@ -20,11 +20,11 @@ export function isDev(): boolean {
 }
 
 export function serverEntry(): string {
-  return helper.serverEntry(pathEnv());
+  return helperServerEntry(pathEnv());
 }
 
 export function mcpEntry(): string {
-  return helper.mcpEntry(pathEnv());
+  return helperMcpEntry(pathEnv());
 }
 
 export function configDir(): string {
