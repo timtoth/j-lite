@@ -3,9 +3,9 @@ import { spawn, ChildProcess } from "node:child_process";
 import * as path from "node:path";
 import * as http from "node:http";
 import * as fs from "node:fs";
-import { findFreePort } from "./free-port.js";
-import { buildServerSpawn } from "./spawn-args.js";
-import { registerMcpIfNeeded } from "./mcp-register.js";
+import { findFreePort } from "./free-port";
+import { buildServerSpawn } from "./spawn-args";
+import { registerMcpIfNeeded } from "./mcp-register";
 import { serverEntry, mcpEntry, configDir, isDev } from "./paths";
 import { IPC } from "./types";
 
