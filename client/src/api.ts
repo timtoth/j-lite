@@ -9,14 +9,35 @@ import {
   SettingsStatus,
 } from "./types";
 
+let cachedBase: string | null = null;
+
+async function apiBase(): Promise<string> {
+  if (cachedBase !== null) return cachedBase;
+  if (window.tc?.getServerPort) {
+    const port = await window.tc.getServerPort();
+    if (port > 0) {
+      cachedBase = `http://127.0.0.1:${port}`;
+      return cachedBase;
+    }
+  }
+  // Browser-only dev (npm run dev:web): Vite proxy handles relative URLs.
+  cachedBase = "";
+  return cachedBase;
+}
+
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const base = await apiBase();
+  return fetch(base + path, init);
+}
+
 export async function fetchTickets(): Promise<ListResponse<Ticket>> {
-  const res = await fetch("/api/tickets");
+  const res = await apiFetch("/api/tickets");
   if (!res.ok) throw new Error("Failed to fetch tickets");
   return res.json();
 }
 
 export async function fetchDescription(key: string): Promise<string> {
-  const res = await fetch(`/api/tickets/${encodeURIComponent(key)}/description`);
+  const res = await apiFetch(`/api/tickets/${encodeURIComponent(key)}/description`);
   if (!res.ok) throw new Error("Failed to load description");
   const data = await res.json();
   return data.description;
@@ -36,7 +57,7 @@ export async function sendInstruction(
   if (cwd) body.cwd = cwd;
   if (sessionId) body.sessionId = sessionId;
 
-  const res = await fetch("/api/instruct", {
+  const res = await apiFetch("/api/instruct", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -71,25 +92,25 @@ export async function browseFolder(): Promise<string> {
 }
 
 export async function fetchEpics(): Promise<ListResponse<Epic>> {
-  const res = await fetch("/api/epics");
+  const res = await apiFetch("/api/epics");
   if (!res.ok) throw new Error("Failed to fetch epics");
   return res.json();
 }
 
 export async function fetchEpicChildren(key: string): Promise<ListResponse<EpicChild>> {
-  const res = await fetch(`/api/epics/${encodeURIComponent(key)}/children`);
+  const res = await apiFetch(`/api/epics/${encodeURIComponent(key)}/children`);
   if (!res.ok) throw new Error("Failed to fetch epic children");
   return res.json();
 }
 
 export async function getSettings(): Promise<Settings> {
-  const res = await fetch("/api/settings");
+  const res = await apiFetch("/api/settings");
   if (!res.ok) throw new Error("Failed to load settings");
   return res.json();
 }
 
 export async function updateSettings(patch: SettingsPatch): Promise<Settings> {
-  const res = await fetch("/api/settings", {
+  const res = await apiFetch("/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -108,7 +129,7 @@ export async function updateSettings(patch: SettingsPatch): Promise<Settings> {
 }
 
 export async function discoverJiraIds(): Promise<DiscoveryResult> {
-  const res = await fetch("/api/settings/discover", { method: "POST" });
+  const res = await apiFetch("/api/settings/discover", { method: "POST" });
   if (!res.ok) {
     let message = "Discovery failed";
     try {
@@ -123,7 +144,7 @@ export async function discoverJiraIds(): Promise<DiscoveryResult> {
 }
 
 export async function getSettingsStatus(): Promise<SettingsStatus> {
-  const res = await fetch("/api/settings/status");
+  const res = await apiFetch("/api/settings/status");
   if (!res.ok) throw new Error("Failed to load status");
   return res.json();
 }
