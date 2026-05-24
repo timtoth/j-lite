@@ -16,7 +16,7 @@ export const EpicCard = memo(function EpicCard({ epic }: { epic: Epic }) {
       setLoading(true);
       try {
         const data = await fetchEpicChildren(epic.key);
-        setChildren(data);
+        setChildren(data.items);
       } catch {
         setChildren([]);
       } finally {

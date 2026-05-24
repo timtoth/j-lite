@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, KeyboardEvent } from "react";
 import { sendInstruction } from "../api";
-import { FolderPicker } from "./FolderPicker";
 import { ChatMessage, ChatMessageData } from "./ChatMessage";
 
 const FOLDER_STORAGE_KEY = "tc_folderPath";
@@ -42,10 +41,6 @@ function saveChat(chat: PersistedChat) {
 }
 
 export function InstructPanel({ onInstructionSent }: Props) {
-  const [folderPath, setFolderPath] = useState(
-    () => localStorage.getItem(FOLDER_STORAGE_KEY) || ""
-  );
-
   const [sessionId, setSessionId] = useState<string | null>(
     () => loadChat().sessionId
   );
@@ -102,11 +97,6 @@ export function InstructPanel({ onInstructionSent }: Props) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  function handleFolderChange(path: string) {
-    setFolderPath(path);
-    localStorage.setItem(FOLDER_STORAGE_KEY, path);
-  }
-
   function handleNewChat() {
     setSessionId(null);
     setMessages([]);
@@ -132,7 +122,7 @@ export function InstructPanel({ onInstructionSent }: Props) {
     setSending(true);
 
     try {
-      const cwd = folderPath.trim() || undefined;
+      const cwd = (localStorage.getItem(FOLDER_STORAGE_KEY) || "").trim() || undefined;
       const result = await sendInstruction(text, cwd, sessionId);
       const assistantMessage: ChatMessageData = {
         role: "assistant",
@@ -193,7 +183,6 @@ export function InstructPanel({ onInstructionSent }: Props) {
         >
           New Chat
         </button>
-        <FolderPicker value={folderPath} onChange={handleFolderChange} />
       </div>
 
       <div className="chat-transcript" ref={transcriptRef}>

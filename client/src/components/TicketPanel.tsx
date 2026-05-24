@@ -3,6 +3,9 @@ import { Ticket } from "../types";
 import { fetchTickets } from "../api";
 import { TicketCard } from "./TicketCard";
 import { EpicList } from "./EpicList";
+import { SettingsView } from "./SettingsView";
+
+const SEEN_SETUP_KEY = "tc_seen_setup";
 
 interface Props {
   refreshKey: number;
@@ -10,10 +13,13 @@ interface Props {
 }
 
 type Tab = "todo" | "epics";
+type View = "tickets" | "settings";
 
 export function TicketPanel({ refreshKey, onRefresh }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("todo");
+  const [view, setView] = useState<View>("tickets");
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [epicRefreshKey, setEpicRefreshKey] = useState(0);
@@ -22,7 +28,14 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
     setLoading(true);
     setError(false);
     fetchTickets()
-      .then(setTickets)
+      .then((res) => {
+        setTickets(res.items);
+        setConfigured(res.configured);
+        if (!res.configured && !localStorage.getItem(SEEN_SETUP_KEY)) {
+          setView("settings");
+          localStorage.setItem(SEEN_SETUP_KEY, "1");
+        }
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [refreshKey]);
@@ -35,13 +48,35 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
     }
   }
 
+  if (view === "settings") {
+    return (
+      <div className="ticket-panel">
+        <SettingsView onClose={() => setView("tickets")} />
+      </div>
+    );
+  }
+
   return (
     <div className="ticket-panel">
       <div className="panel-header">
         <h1>{activeTab === "todo" ? "My Todo" : "Epics"}</h1>
-        <button className="refresh-btn" onClick={handleRefresh}>
-          Refresh
-        </button>
+        <div className="panel-header__actions">
+          <button
+            className="refresh-btn refresh-btn--primary"
+            onClick={handleRefresh}
+          >
+            <span className="refresh-btn__icon" aria-hidden="true">↻</span>
+            Refresh
+          </button>
+          <button
+            className="gear-btn"
+            onClick={() => setView("settings")}
+            aria-label="Open settings"
+            title="Settings"
+          >
+            ⚙
+          </button>
+        </div>
       </div>
       <div className="tab-bar">
         <button
@@ -65,15 +100,22 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
               <div>Loading tickets&hellip;</div>
             </div>
           )}
-          {!loading && error && (
+          {!loading && !configured && (
+            <div className="empty-state">
+              JIRA isn't connected yet. Click the gear icon to set up your
+              connection.
+            </div>
+          )}
+          {!loading && configured && error && (
             <div className="empty-state">
               Failed to load tickets. Click Refresh to retry.
             </div>
           )}
-          {!loading && !error && tickets.length === 0 && (
+          {!loading && configured && !error && tickets.length === 0 && (
             <div className="empty-state">No tickets assigned</div>
           )}
           {!loading &&
+            configured &&
             !error &&
             tickets.map((t) => <TicketCard key={t.key} ticket={t} />)}
         </div>

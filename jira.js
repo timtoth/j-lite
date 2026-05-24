@@ -1,15 +1,32 @@
 const logger = require("./logger");
+const config = require("./config");
 
-const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
-const JIRA_EMAIL = process.env.JIRA_EMAIL;
-const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
+class NotConfiguredError extends Error {
+  constructor(message) {
+    super(message || "JIRA is not configured");
+    this.name = "NotConfiguredError";
+  }
+}
 
-const auth = Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString("base64");
+function authHeader() {
+  const email = config.get("JIRA_EMAIL");
+  const token = config.get("JIRA_API_TOKEN");
+  if (!email || !token) {
+    throw new NotConfiguredError("Missing JIRA credentials");
+  }
+  return "Basic " + Buffer.from(`${email}:${token}`).toString("base64");
+}
+
+function jiraBaseUrl() {
+  const base = config.get("JIRA_BASE_URL");
+  if (!base) throw new NotConfiguredError("Missing JIRA_BASE_URL");
+  return base;
+}
 
 async function jiraFetch(url) {
   const res = await fetch(url, {
     headers: {
-      Authorization: `Basic ${auth}`,
+      Authorization: authHeader(),
       Accept: "application/json",
     },
   });
@@ -31,8 +48,8 @@ async function jiraFetch(url) {
 }
 
 async function getMyTickets() {
-  const jql = `assignee = "${JIRA_EMAIL}" AND status != Closed ORDER BY updated DESC`;
-  const url = `${JIRA_BASE_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status`;
+  const jql = `assignee = "${config.get("JIRA_EMAIL")}" AND status != Closed ORDER BY updated DESC`;
+  const url = `${jiraBaseUrl()}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status`;
 
   const data = await jiraFetch(url);
 
@@ -41,14 +58,14 @@ async function getMyTickets() {
     key: issue.key,
     title: issue.fields.summary,
     status: issue.fields.status.name,
-    url: `${JIRA_BASE_URL}/browse/${issue.key}`,
+    url: `${jiraBaseUrl()}/browse/${issue.key}`,
   }));
 }
 
 async function getMyEpics() {
   // Step 1: Find tickets assigned to or reported by user that belong to an Epic
-  const jql = `(assignee = "${JIRA_EMAIL}" OR reporter = "${JIRA_EMAIL}") AND "Epic Link" is not EMPTY AND status != Closed`;
-  const url = `${JIRA_BASE_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,parent`;
+  const jql = `(assignee = "${config.get("JIRA_EMAIL")}" OR reporter = "${config.get("JIRA_EMAIL")}") AND "Epic Link" is not EMPTY AND status != Closed`;
+  const url = `${jiraBaseUrl()}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,parent`;
 
   const data = await jiraFetch(url);
 
@@ -64,7 +81,7 @@ async function getMyEpics() {
 
   // Step 2: Fetch Epic details
   const epicJql = `key IN (${[...epicKeys].join(",")})`;
-  const epicUrl = `${JIRA_BASE_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(epicJql)}&fields=summary,status`;
+  const epicUrl = `${jiraBaseUrl()}/rest/api/3/search/jql?jql=${encodeURIComponent(epicJql)}&fields=summary,status`;
 
   const epicData = await jiraFetch(epicUrl);
 
@@ -73,21 +90,21 @@ async function getMyEpics() {
     key: issue.key,
     title: issue.fields.summary,
     status: issue.fields.status.name,
-    url: `${JIRA_BASE_URL}/browse/${issue.key}`,
+    url: `${jiraBaseUrl()}/browse/${issue.key}`,
   }));
 }
 
 async function getEpicChildren(epicKey) {
   // Try "Epic Link" first (classic projects)
   let jql = `"Epic Link" = ${epicKey} ORDER BY status ASC, updated DESC`;
-  let url = `${JIRA_BASE_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee`;
+  let url = `${jiraBaseUrl()}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee`;
 
   let data = await jiraFetch(url);
 
   // Fallback to parent = key (next-gen projects)
   if (data.issues.length === 0) {
     jql = `parent = ${epicKey} ORDER BY status ASC, updated DESC`;
-    url = `${JIRA_BASE_URL}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee`;
+    url = `${jiraBaseUrl()}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee`;
     data = await jiraFetch(url);
   }
 
@@ -96,7 +113,7 @@ async function getEpicChildren(epicKey) {
     key: issue.key,
     title: issue.fields.summary,
     status: issue.fields.status.name,
-    url: `${JIRA_BASE_URL}/browse/${issue.key}`,
+    url: `${jiraBaseUrl()}/browse/${issue.key}`,
     assignee: issue.fields.assignee?.displayName || "Unassigned",
   }));
 }
@@ -161,7 +178,7 @@ function adfToHtml(node) {
 }
 
 async function getTicketDescription(key) {
-  const url = `${JIRA_BASE_URL}/rest/api/3/issue/${encodeURIComponent(key)}?fields=description`;
+  const url = `${jiraBaseUrl()}/rest/api/3/issue/${encodeURIComponent(key)}?fields=description`;
   const data = await jiraFetch(url);
   return adfToHtml(data.fields.description) || "<em>No description.</em>";
 }
@@ -178,7 +195,7 @@ function adfToText(node) {
 }
 
 async function getTicketDetails(key) {
-  const url = `${JIRA_BASE_URL}/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status,description,assignee,reporter,priority,issuetype,created,updated,comment`;
+  const url = `${jiraBaseUrl()}/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status,description,assignee,reporter,priority,issuetype,created,updated,comment`;
   const data = await jiraFetch(url);
   const f = data.fields;
 
@@ -191,7 +208,7 @@ async function getTicketDetails(key) {
   text += `Reporter: ${f.reporter?.displayName || "Unknown"}\n`;
   text += `Created: ${f.created}\n`;
   text += `Updated: ${f.updated}\n`;
-  text += `URL: ${JIRA_BASE_URL}/browse/${data.key}\n`;
+  text += `URL: ${jiraBaseUrl()}/browse/${data.key}\n`;
   text += `\nDescription:\n${adfToText(f.description) || "No description."}\n`;
 
   if (f.comment?.comments?.length) {
@@ -205,4 +222,4 @@ async function getTicketDetails(key) {
   return text;
 }
 
-module.exports = { getMyTickets, getTicketDescription, getTicketDetails, getMyEpics, getEpicChildren };
+module.exports = { getMyTickets, getTicketDescription, getTicketDetails, getMyEpics, getEpicChildren, NotConfiguredError };

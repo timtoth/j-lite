@@ -14,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 const require = createRequire(import.meta.url);
+const config = require("../config");
 const { jiraRequest, getJiraBaseUrl } = require("../lib/jira-client.js");
 const { createJiraTicket } = require("./jira-create.js");
 
@@ -86,7 +87,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const result = await createJiraTicket(request.params.arguments ?? {}, {
       jiraRequest,
       getJiraBaseUrl,
-      env: process.env,
+      env: config.getAll(),
     });
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   } catch (err) {

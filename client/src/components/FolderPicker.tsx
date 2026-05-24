@@ -23,7 +23,6 @@ export function FolderPicker({ value, onChange }: Props) {
 
   return (
     <div className="folder-select">
-      <label htmlFor="folderPath">Project</label>
       <input
         type="text"
         id="folderPath"

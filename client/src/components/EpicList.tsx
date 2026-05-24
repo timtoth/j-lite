@@ -16,7 +16,7 @@ export function EpicList({ refreshKey }: Props) {
     setLoading(true);
     setError(false);
     fetchEpics()
-      .then(setEpics)
+      .then((res) => setEpics(res.items))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [refreshKey]);

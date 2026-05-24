@@ -1,23 +1,29 @@
 const { Router } = require("express");
-const { getMyEpics, getEpicChildren } = require("../jira");
+const { getMyEpics, getEpicChildren, NotConfiguredError } = require("../jira");
 
 const router = Router();
 
 router.get("/api/epics", async (req, res) => {
   try {
     const epics = await getMyEpics();
-    res.json(epics);
+    res.json({ configured: true, items: epics });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err instanceof NotConfiguredError) {
+      return res.json({ configured: false, items: [] });
+    }
+    res.status(500).json({ configured: true, error: err.message, items: [] });
   }
 });
 
 router.get("/api/epics/:key/children", async (req, res) => {
   try {
     const children = await getEpicChildren(req.params.key);
-    res.json(children);
+    res.json({ configured: true, items: children });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err instanceof NotConfiguredError) {
+      return res.json({ configured: false, items: [] });
+    }
+    res.status(500).json({ configured: true, error: err.message, items: [] });
   }
 });
 
