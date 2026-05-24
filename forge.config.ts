@@ -30,8 +30,8 @@ const config: ForgeConfig = {
   plugins: [
     new VitePlugin({
       build: [
-        { entry: "electron/main.ts", config: "vite.main.config.ts" },
-        { entry: "electron/preload.ts", config: "vite.preload.config.ts" },
+        { entry: "electron/main.ts", config: "vite.main.config.ts", target: "main" },
+        { entry: "electron/preload.ts", config: "vite.preload.config.ts", target: "preload" },
       ],
       renderer: [
         { name: "main_window", config: "client/vite.config.ts" },
