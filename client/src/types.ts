@@ -28,22 +28,34 @@ export interface MaskedToken {
   last4: string;
 }
 
+export interface JiraSpaceFields {
+  team?: string;
+  fixVersions?: string;
+  storyPoints?: string;
+  sprint?: string;
+  product?: string;
+}
+
+export interface JiraSpace {
+  teamId: string;
+  fields: JiraSpaceFields;
+  discoveredAt?: string;
+  error?: string;
+}
+
 export interface Settings {
   JIRA_BASE_URL: string;
   JIRA_EMAIL: string;
   JIRA_API_TOKEN: MaskedToken | null;
-  JIRA_TEAM_FIELD_ID: string;
-  JIRA_TEAM_ID: string;
   JIRA_ACCOUNT_ID: string;
   JIRA_PRODUCT_FIELD_ID: string;
+  JIRA_SPACES: Record<string, JiraSpace>;
 }
 
 export type SettingsPatch = Partial<{
   JIRA_BASE_URL: string;
   JIRA_EMAIL: string;
   JIRA_API_TOKEN: string;
-  JIRA_TEAM_FIELD_ID: string;
-  JIRA_TEAM_ID: string;
   JIRA_ACCOUNT_ID: string;
   JIRA_PRODUCT_FIELD_ID: string;
 }>;
@@ -54,10 +66,8 @@ export interface DiscoveredId {
 }
 
 export interface DiscoveryResult {
-  teamFieldId: DiscoveredId | null;
-  teamId: DiscoveredId | null;
   accountId: DiscoveredId | null;
-  productFieldId: DiscoveredId;
+  spaces: Record<string, JiraSpace>;
 }
 
 export interface SettingsStatus {

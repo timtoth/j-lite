@@ -51,11 +51,13 @@ export interface InstructResult {
 export async function sendInstruction(
   instruction: string,
   cwd?: string,
-  sessionId?: string | null
+  sessionId?: string | null,
+  space?: string | null
 ): Promise<InstructResult> {
   const body: Record<string, unknown> = { instruction };
   if (cwd) body.cwd = cwd;
   if (sessionId) body.sessionId = sessionId;
+  if (space) body.space = space;
 
   const res = await apiFetch("/api/instruct", {
     method: "POST",
@@ -128,8 +130,11 @@ export async function updateSettings(patch: SettingsPatch): Promise<Settings> {
   return res.json();
 }
 
-export async function discoverJiraIds(): Promise<DiscoveryResult> {
-  const res = await apiFetch("/api/settings/discover", { method: "POST" });
+export async function discoverJiraIds(spaceKey?: string): Promise<DiscoveryResult> {
+  const path = spaceKey
+    ? `/api/settings/discover?space=${encodeURIComponent(spaceKey)}`
+    : "/api/settings/discover";
+  const res = await apiFetch(path, { method: "POST" });
   if (!res.ok) {
     let message = "Discovery failed";
     try {
