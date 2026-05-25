@@ -72,6 +72,7 @@ export function SettingsView({ onClose }: Props) {
               values={values}
               patch={patch}
               onChange={setPatch}
+              onValuesChange={setValues}
               status={status}
               dirty={dirty}
             />
