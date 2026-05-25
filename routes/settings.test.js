@@ -294,3 +294,92 @@ test("POST /api/settings/discover returns per-space error without aborting", asy
     discoveryMock.discoverSpaceFields = origFields;
   }
 });
+
+test("PUT /api/settings/spaces/:key updates teamId and preserves fields", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {
+        RL: {
+          teamId: "old-team",
+          fields: { team: "customfield_10001", fixVersions: "fixVersions", storyPoints: "", sprint: "", product: "" },
+          discoveredAt: "2026-05-24T00:00:00.000Z",
+        },
+      },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "PUT", "/api/settings/spaces/RL", { teamId: "new-team-uuid" });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.teamId, "new-team-uuid");
+  assert.equal(res.json.fields.team, "customfield_10001");
+  assert.equal(res.json.discoveredAt, "2026-05-24T00:00:00.000Z");
+  const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+  assert.equal(onDisk.JIRA_SPACES.RL.teamId, "new-team-uuid");
+  assert.equal(onDisk.JIRA_SPACES.RL.fields.team, "customfield_10001");
+});
+
+test("PUT /api/settings/spaces/:key returns 404 when space doesn't exist", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {},
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "PUT", "/api/settings/spaces/MISSING", { teamId: "x" });
+  assert.equal(res.status, 404);
+});
+
+test("PUT /api/settings/spaces/:key rejects non-string teamId", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: { RL: { teamId: "", fields: {} } },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "PUT", "/api/settings/spaces/RL", { teamId: 1234 });
+  assert.equal(res.status, 400);
+});
+
+test("PUT /api/settings/spaces/:key clears prior error field", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {
+        RL: {
+          teamId: "",
+          fields: { team: "customfield_10001" },
+          error: "discovery failed last time",
+        },
+      },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "PUT", "/api/settings/spaces/RL", { teamId: "fresh" });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.error, undefined);
+  const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+  assert.equal(onDisk.JIRA_SPACES.RL.error, undefined);
+});

@@ -99,6 +99,31 @@ router.post("/api/settings/discover", async (req, res) => {
   }
 });
 
+router.put("/api/settings/spaces/:key", (req, res) => {
+  const key = req.params.key;
+  const body = req.body || {};
+  if (typeof body.teamId !== "string") {
+    return res.status(400).json({ error: "teamId must be a string" });
+  }
+  const existing = config.getSpace(key);
+  if (!existing) {
+    return res.status(404).json({ error: `Unknown space: ${key}` });
+  }
+  const merged = {
+    teamId: body.teamId,
+    fields: { ...(existing.fields || {}) },
+  };
+  if (existing.discoveredAt) merged.discoveredAt = existing.discoveredAt;
+  // `error` is intentionally not copied — successful edit clears it.
+  try {
+    config.setSpace(key, merged);
+    return res.json(merged);
+  } catch (err) {
+    logger.error("CONFIG", `Failed to update space ${key}: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 function checkClaude() {
   return new Promise((resolve) => {
     let settled = false;
