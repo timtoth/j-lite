@@ -3,6 +3,7 @@ node_modules/
 .env.local
 .env.*.local
 client/dist/
+client/.vite/
 *.log
 
 # Local Claude Code overrides

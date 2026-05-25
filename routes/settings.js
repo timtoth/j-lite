@@ -73,17 +73,33 @@ router.post("/api/settings/discover", async (req, res) => {
 
 function checkClaude() {
   return new Promise((resolve) => {
-    const proc = spawn("claude", ["--version"], { stdio: ["ignore", "pipe", "pipe"] });
+    let settled = false;
+    const done = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+    let proc;
+    try {
+      // shell: true so Windows resolves claude.cmd / claude.ps1 from PATH.
+      proc = spawn("claude", ["--version"], {
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: true,
+      });
+    } catch {
+      done({ available: false });
+      return;
+    }
     let stdout = "";
-    proc.stdout.on("data", (chunk) => { stdout += chunk; });
-    proc.on("error", () => resolve({ available: false }));
+    proc.stdout?.on("data", (chunk) => { stdout += chunk; });
+    proc.on("error", () => done({ available: false }));
     proc.on("close", (code) => {
-      if (code === 0) resolve({ available: true, version: stdout.trim() });
-      else resolve({ available: false });
+      if (code === 0) done({ available: true, version: stdout.trim() });
+      else done({ available: false });
     });
     setTimeout(() => {
       try { proc.kill(); } catch {}
-      resolve({ available: false });
+      done({ available: false });
     }, 4000);
   });
 }

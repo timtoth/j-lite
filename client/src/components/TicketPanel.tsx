@@ -5,8 +5,6 @@ import { TicketCard } from "./TicketCard";
 import { EpicList } from "./EpicList";
 import { SettingsView } from "./SettingsView";
 
-const SEEN_SETUP_KEY = "tc_seen_setup";
-
 interface Props {
   refreshKey: number;
   onRefresh: () => void;
@@ -31,10 +29,7 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
       .then((res) => {
         setTickets(res.items);
         setConfigured(res.configured);
-        if (!res.configured && !localStorage.getItem(SEEN_SETUP_KEY)) {
-          setView("settings");
-          localStorage.setItem(SEEN_SETUP_KEY, "1");
-        }
+        if (!res.configured) setView("settings");
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));

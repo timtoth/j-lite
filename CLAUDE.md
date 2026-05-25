@@ -8,7 +8,7 @@ All commands run from the repo root unless noted.
 
 - `npm start` — launches the Electron app in dev mode (Forge starts Vite for renderer/main/preload, opens an Electron window). The Express server is spawned by Electron main on a random port.
 - `npm run dev:web` — runs the Express API and the Vite dev server *without* Electron, for browser-only debugging. Express on `:3000`, Vite on `:5173`.
-- `npm run build` — type-checks and builds the React client into `client/dist/`.
+- `npm run build` — type-checks the React client and runs `vite build` (mostly useful as a standalone typecheck; `npm run package` does this as part of its pipeline).
 - `npm run package` — builds the Electron app into `out/<app>-<platform>-<arch>/` without producing an installer. Useful for smoke-testing the packaged layout.
 - `npm run make` — produces installers in `out/make/` for the host OS (Squirrel `.exe` on Windows, `.dmg`/`.zip` on macOS, `.deb`/`.rpm` on Linux). Run on the target OS — there is no cross-compile.
 - `npm test` — runs all `node --test` suites. Run a single file with `node --test <file>`. Filter to one test with `node --test --test-name-pattern="<regex>"`.
@@ -43,7 +43,7 @@ A standalone MCP stdio server (`create-ticket-server.mjs`) exposing one tool, `c
 `logger.js` writes timestamped lines to `app.log` at the repo root and mirrors them to stdout/stderr. Use `logger.info/warn/error(category, message)` rather than `console.*` in server-side code so the log file stays consistent.
 
 ### Production serving
-`server.js` mounts the API routers and then a catch-all `app.get("*")` that serves `client/dist/index.html`, so client routes work on hard refresh once `npm run build` has been run.
+The packaged Electron app loads the renderer with `BrowserWindow.loadFile()` straight from the asar (`.vite/renderer/main_window/index.html`); `server.js` is API-only. Renderer → API requests are cross-origin (renderer at `file://` or Vite, API at `http://127.0.0.1:<random>`), so `server.js` enables CORS for `localhost`/`127.0.0.1` origins.
 
 ### Electron host (`electron/`)
 
@@ -53,7 +53,7 @@ When run as the desktop app (`npm start` / installed build), an Electron main pr
 - **Preload** (`electron/preload.ts`) exposes a tiny `window.tc` API to the renderer (`pickFolder`, `getServerPort`).
 - **Server child** is the unchanged `server.js`, launched with `cwd: app.getPath('userData')` and env vars `PORT=<random>` and `TC_CONFIG_DIR=<userData>`. `config.js` and `logger.js` honor `TC_CONFIG_DIR` so `config.json` and `app.log` live next to each other in `userData`.
 
-Pure helpers in `electron/` (`paths.js`, `free-port.js`, `spawn-args.js`, `mcp-register.js`) are kept in plain JS so they can be unit-tested via `node --test` without an Electron runtime. The `.ts` files in the same folder are thin re-exports for type safety in `main.ts` and `preload.ts`.
+Pure helpers in `electron/` (`paths.impl.js`, `free-port.impl.js`, `spawn-args.impl.js`, `mcp-register.impl.js`) are kept in plain CommonJS so they can be unit-tested via `node --test` without an Electron runtime. The `.ts` files in the same folder are thin re-exports for type safety in `main.ts` and `preload.ts`. The `.impl.js` suffix is load-bearing: `vite.main.config.ts` tells Rollup's CommonJS plugin to process files matching `/\.impl\.js$/` so named exports survive bundling.
 
 The `extraResource` list in `forge.config.ts` ships the existing CommonJS server tree (`server.js`, `routes/`, `lib/`, `jira.js`, `config.js`, `logger.js`, `mcp/`) into `process.resourcesPath` so the spawned child can find them.
 

@@ -68,7 +68,13 @@ export function SettingsView({ onClose }: Props) {
         {values && (
           <>
             <JiraUserCard values={values} patch={patch} onChange={setPatch} />
-            <JiraProjectCard values={values} patch={patch} onChange={setPatch} />
+            <JiraProjectCard
+              values={values}
+              patch={patch}
+              onChange={setPatch}
+              status={status}
+              dirty={dirty}
+            />
           </>
         )}
         {!values && <div className="empty-state">Loading settings…</div>}

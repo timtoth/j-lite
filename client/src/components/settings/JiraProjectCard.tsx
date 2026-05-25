@@ -1,11 +1,13 @@
 import { ChangeEvent, useState } from "react";
-import { Settings, SettingsPatch, DiscoveryResult } from "../../types";
+import { Settings, SettingsPatch, DiscoveryResult, SettingsStatus } from "../../types";
 import { discoverJiraIds } from "../../api";
 
 interface Props {
   values: Settings;
   patch: SettingsPatch;
   onChange: (patch: SettingsPatch) => void;
+  status: SettingsStatus | null;
+  dirty: boolean;
 }
 
 interface IdRowProps {
@@ -41,10 +43,11 @@ function IdRow({ label, hint, fieldKey, values, patch, onChange, discovered }: I
   );
 }
 
-export function JiraProjectCard({ values, patch, onChange }: Props) {
+export function JiraProjectCard({ values, patch, onChange, status, dirty }: Props) {
   const [discovering, setDiscovering] = useState(false);
   const [discovery, setDiscovery] = useState<DiscoveryResult | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const canDiscover = !!status?.jira.ok;
 
   async function handleDiscover() {
     setDiscovering(true);
@@ -67,11 +70,24 @@ export function JiraProjectCard({ values, patch, onChange }: Props) {
           type="button"
           className="settings-discover-btn"
           onClick={handleDiscover}
-          disabled={discovering}
+          disabled={discovering || !canDiscover}
+          title={canDiscover ? undefined : "Save valid JIRA credentials first"}
         >
           {discovering ? "Discovering…" : "Discover from JIRA"}
         </button>
       </div>
+
+      {status?.configured && status.jira.ok && !dirty && (
+        <div className="settings-success">
+          Setup Complete, start using the app!
+        </div>
+      )}
+
+      <p className="settings-hint">
+        These IDs are specific to your JIRA instance. Once your JIRA credentials
+        above are saved, click <strong>Discover from JIRA</strong> to fill these
+        in automatically.
+      </p>
 
       {discoveryError && <div className="settings-error">{discoveryError}</div>}
 

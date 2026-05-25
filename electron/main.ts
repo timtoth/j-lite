@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import * as path from "node:path";
 import * as http from "node:http";
@@ -121,8 +121,12 @@ async function restartServer(): Promise<void> {
 function loadWindow(win: BrowserWindow): void {
   if (isDev() && typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined") {
     win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-  } else if (serverPort !== null) {
-    win.loadURL(`http://127.0.0.1:${serverPort}/`);
+  } else {
+    // Forge's Vite plugin emits the renderer into
+    // .vite/renderer/<name>/ relative to the main bundle.
+    win.loadFile(
+      path.join(__dirname, "..", "renderer", MAIN_WINDOW_VITE_NAME, "index.html")
+    );
   }
 }
 
@@ -130,12 +134,14 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+  mainWindow.setMenuBarVisibility(false);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -163,6 +169,7 @@ ipcMain.handle(IPC.GET_SERVER_PORT, () => {
 });
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null);
   try {
     serverPort = await startServer();
   } catch (err) {

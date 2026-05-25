@@ -36,7 +36,8 @@ export function ProjectCard({ status, folderPath, onFolderChange }: Props) {
         </div>
       </div>
       <p className="settings-hint">
-        The folder Claude operates on for chat instructions. Leave blank to use this project.
+        The working directory Claude uses when running your instructions. Pick the
+        repo or project folder you want it to act on.
       </p>
     </section>
   );
