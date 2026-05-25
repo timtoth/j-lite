@@ -894,6 +894,84 @@ body {
   cursor: not-allowed;
 }
 
+/* ---- Space Modal ---- */
+.space-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.space-modal {
+  background: #1f2329;
+  border: 1px solid #3a3f47;
+  border-radius: 8px;
+  padding: 20px 22px;
+  min-width: 360px;
+  max-width: 480px;
+  color: #e6e8eb;
+}
+
+.space-modal__title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.space-modal__hint {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: #a8b0b9;
+}
+
+.space-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.space-modal__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.space-modal__free-text {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #3a3f47;
+  background: #15181c;
+  color: #e6e8eb;
+  border-radius: 4px;
+}
+
+.space-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.space-modal__btn {
+  background: #1e6e3e;
+  color: #fff;
+  border: 1px solid #1e6e3e;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.space-modal__btn--secondary {
+  background: transparent;
+  color: #a8b0b9;
+  border-color: #3a3f47;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .layout {
