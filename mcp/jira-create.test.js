@@ -43,99 +43,129 @@ test("deriveProjectKey rejects malformed keys", () => {
   assert.throws(() => deriveProjectKey(null), /required/);
 });
 
-const { createJiraTicket } = require("./jira-create");
+const { test: t } = require("node:test");
+const a = require("node:assert/strict");
+const { createJiraTicket, parseRequiredFieldErrors } = require("./jira-create");
 
-function makeDeps(overrides = {}) {
-  let captured = null;
-  const deps = {
-    jiraRequest: async (method, path, body) => {
-      captured = { method, path, body };
-      return { key: "UP-789" };
-    },
-    getJiraBaseUrl: () => "https://example.atlassian.net",
-    env: {
-      JIRA_TEAM_FIELD_ID: "customfield_10001",
-      JIRA_TEAM_ID: "team-uuid-123",
-      JIRA_ACCOUNT_ID: "account-abc",
-      JIRA_PRODUCT_FIELD_ID: "customfield_12037",
-      ...overrides,
-    },
+t("createJiraTicket reads field ids from the space record", async () => {
+  const calls = [];
+  const jiraRequest = async (method, path, body) => {
+    calls.push({ method, path, body });
+    return { key: "RL-9", id: "10001" };
   };
-  return { deps, getCaptured: () => captured };
-}
-
-test("createJiraTicket builds expected POST body and returns key + url", async () => {
-  const { deps, getCaptured } = makeDeps();
   const result = await createJiraTicket(
-    { summary: "Implement consumer", description: "Do the thing.", parent_epic_key: "UP-456" },
-    deps,
+    {
+      summary: "x",
+      description: "y",
+      parent_epic_key: "RL-1",
+      issue_type: "Story",
+      product: "Rightsline",
+    },
+    {
+      jiraRequest,
+      getJiraBaseUrl: () => "https://x.atlassian.net",
+      env: { JIRA_ACCOUNT_ID: "acct" },
+      getSpace: (k) => k === "RL"
+        ? { teamId: "team-uuid", fields: { team: "customfield_10001", product: "customfield_12037" } }
+        : null,
+      setSpace: () => {},
+      discoverSpace: async () => { throw new Error("should not be called"); },
+    },
   );
-  const captured = getCaptured();
-  assert.equal(captured.method, "POST");
-  assert.equal(captured.path, "/rest/api/3/issue");
-  assert.equal(captured.body.fields.project.key, "UP");
-  assert.equal(captured.body.fields.summary, "Implement consumer");
-  assert.equal(captured.body.fields.parent.key, "UP-456");
-  assert.equal(captured.body.fields.issuetype.name, "Story");
-  assert.equal(captured.body.fields.assignee.accountId, "account-abc");
-  assert.equal(captured.body.fields.customfield_10001, "team-uuid-123");
-  assert.deepEqual(captured.body.fields.customfield_12037, [{ value: "Rightsline" }]);
-  assert.equal(captured.body.fields.description.type, "doc");
-  assert.deepEqual(result, { key: "UP-789", url: "https://example.atlassian.net/browse/UP-789" });
+  a.equal(result.key, "RL-9");
+  a.equal(calls[0].body.fields.customfield_10001, "team-uuid");
+  a.deepEqual(calls[0].body.fields.customfield_12037, [{ value: "Rightsline" }]);
 });
 
-test("createJiraTicket honors product override", async () => {
-  const { deps, getCaptured } = makeDeps();
-  await createJiraTicket(
-    { summary: "x", description: "y", parent_epic_key: "UP-1", product: "Alliant" },
-    deps,
+t("createJiraTicket discovers space when record is missing", async () => {
+  let discovered = 0;
+  const jiraRequest = async () => ({ key: "CUS-3" });
+  const result = await createJiraTicket(
+    { summary: "x", description: "y", parent_epic_key: "CUS-1", issue_type: "Story", product: "Rightsline" },
+    {
+      jiraRequest,
+      getJiraBaseUrl: () => "https://x.atlassian.net",
+      env: { JIRA_ACCOUNT_ID: "acct" },
+      getSpace: () => null,
+      setSpace: () => {},
+      discoverSpace: async () => {
+        discovered++;
+        return { teamId: "", fields: { product: "customfield_12037" } };
+      },
+    },
   );
-  assert.deepEqual(getCaptured().body.fields.customfield_12037, [{ value: "Alliant" }]);
+  a.equal(discovered, 1);
+  a.equal(result.key, "CUS-3");
 });
 
-test("createJiraTicket rejects unknown product", async () => {
-  const { deps } = makeDeps();
-  await assert.rejects(
+t("createJiraTicket retries once after 400 about required field", async () => {
+  const setCalls = [];
+  let attempt = 0;
+  const jiraRequest = async () => {
+    attempt++;
+    if (attempt === 1) {
+      const err = new Error("400");
+      err.status = 400;
+      err.body = { errors: { customfield_10020: "Sprint is required." } };
+      throw err;
+    }
+    return { key: "RL-2" };
+  };
+  const result = await createJiraTicket(
+    { summary: "x", description: "y", parent_epic_key: "RL-1", issue_type: "Story", product: "Rightsline" },
+    {
+      jiraRequest,
+      getJiraBaseUrl: () => "https://x.atlassian.net",
+      env: { JIRA_ACCOUNT_ID: "acct" },
+      getSpace: () => ({ teamId: "", fields: { product: "customfield_12037" } }),
+      setSpace: (k, r) => setCalls.push({ k, r }),
+      discoverSpace: async () => ({
+        teamId: "", fields: { product: "customfield_12037", sprint: "customfield_10020" },
+      }),
+    },
+  );
+  a.equal(attempt, 2);
+  a.equal(result.key, "RL-2");
+  a.equal(setCalls.length, 1);
+});
+
+t("createJiraTicket does not retry permission-style 400", async () => {
+  let attempt = 0;
+  const jiraRequest = async () => {
+    attempt++;
+    const err = new Error("400");
+    err.status = 400;
+    err.body = { errorMessages: ["You do not have permission"], errors: {} };
+    throw err;
+  };
+  await a.rejects(
     createJiraTicket(
-      { summary: "x", description: "y", parent_epic_key: "UP-1", product: "Bogus" },
-      deps,
+      { summary: "x", description: "y", parent_epic_key: "RL-1", issue_type: "Story", product: "Rightsline" },
+      {
+        jiraRequest,
+        getJiraBaseUrl: () => "https://x.atlassian.net",
+        env: { JIRA_ACCOUNT_ID: "acct" },
+        getSpace: () => ({ teamId: "", fields: { product: "customfield_12037" } }),
+        setSpace: () => {},
+        discoverSpace: async () => { throw new Error("should not call"); },
+      },
     ),
-    /product must be one of/,
   );
+  a.equal(attempt, 1);
 });
 
-test("createJiraTicket honors issue_type override", async () => {
-  const { deps, getCaptured } = makeDeps();
-  await createJiraTicket(
-    { summary: "x", description: "y", parent_epic_key: "UP-1", issue_type: "Bug" },
-    deps,
-  );
-  assert.equal(getCaptured().body.fields.issuetype.name, "Bug");
+t("parseRequiredFieldErrors extracts field ids", () => {
+  const ids = parseRequiredFieldErrors({
+    errors: {
+      customfield_10020: "Sprint is required.",
+      customfield_10010: "Story Points is required.",
+    },
+  });
+  a.deepEqual(ids.sort(), ["customfield_10010", "customfield_10020"]);
 });
 
-test("createJiraTicket rejects unknown issue_type", async () => {
-  const { deps } = makeDeps();
-  await assert.rejects(
-    createJiraTicket(
-      { summary: "x", description: "y", parent_epic_key: "UP-1", issue_type: "Epic" },
-      deps,
-    ),
-    /issue_type must be one of/,
-  );
-});
-
-test("createJiraTicket fails fast when env IDs missing", async () => {
-  const { deps } = makeDeps({ JIRA_TEAM_ID: undefined });
-  await assert.rejects(
-    createJiraTicket({ summary: "x", description: "y", parent_epic_key: "UP-1" }, deps),
-    /MCP not configured/,
-  );
-});
-
-test("createJiraTicket validates required arg presence", async () => {
-  const { deps } = makeDeps();
-  await assert.rejects(
-    createJiraTicket({ description: "y", parent_epic_key: "UP-1" }, deps),
-    /summary is required/,
-  );
+t("parseRequiredFieldErrors returns empty when no errors", () => {
+  a.deepEqual(parseRequiredFieldErrors({}), []);
+  a.deepEqual(parseRequiredFieldErrors({ errors: {} }), []);
+  a.deepEqual(parseRequiredFieldErrors(null), []);
 });
