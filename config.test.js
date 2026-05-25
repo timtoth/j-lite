@@ -5,133 +5,114 @@ const path = require("node:path");
 const os = require("node:os");
 
 let tmpDir;
-let savedCwd;
+let savedEnv;
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tc-config-"));
-  savedCwd = process.cwd();
-  process.chdir(tmpDir);
-  // Drop cached module so each test gets a fresh load.
+  savedEnv = process.env.TC_CONFIG_DIR;
+  process.env.TC_CONFIG_DIR = tmpDir;
   delete require.cache[require.resolve("./config")];
 });
 
 afterEach(() => {
-  process.chdir(savedCwd);
+  if (savedEnv === undefined) delete process.env.TC_CONFIG_DIR;
+  else process.env.TC_CONFIG_DIR = savedEnv;
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-test("first run seeds from process.env and writes config.json", () => {
-  process.env.JIRA_BASE_URL = "https://seed.atlassian.net";
-  process.env.JIRA_EMAIL = "seed@example.com";
-  process.env.JIRA_API_TOKEN = "seed-token";
-  process.env.JIRA_PRODUCT_FIELD_ID = "customfield_12037";
-  delete process.env.JIRA_TEAM_FIELD_ID;
-  delete process.env.JIRA_TEAM_ID;
-  delete process.env.JIRA_ACCOUNT_ID;
+function writeConfig(obj) {
+  fs.writeFileSync(path.join(tmpDir, "config.json"), JSON.stringify(obj));
+}
 
+function readConfig() {
+  return JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+}
+
+test("seeds JIRA_SPACES as empty object on fresh install", () => {
   const config = require("./config");
-
-  assert.equal(config.get("JIRA_BASE_URL"), "https://seed.atlassian.net");
-  assert.equal(config.get("JIRA_EMAIL"), "seed@example.com");
-  assert.equal(config.get("JIRA_API_TOKEN"), "seed-token");
-  assert.equal(config.get("JIRA_PRODUCT_FIELD_ID"), "customfield_12037");
-
-  const persisted = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
-  assert.equal(persisted.JIRA_BASE_URL, "https://seed.atlassian.net");
+  assert.deepEqual(config.getAll().JIRA_SPACES, {});
 });
 
-test("subsequent run loads config.json and ignores process.env", () => {
-  fs.writeFileSync(
-    path.join(tmpDir, "config.json"),
-    JSON.stringify({
-      JIRA_BASE_URL: "https://disk.atlassian.net",
-      JIRA_EMAIL: "disk@example.com",
-      JIRA_API_TOKEN: "disk-token",
-      JIRA_TEAM_FIELD_ID: "customfield_10001",
-      JIRA_TEAM_ID: "team-uuid",
-      JIRA_ACCOUNT_ID: "acct-1",
-      JIRA_PRODUCT_FIELD_ID: "customfield_12037",
-    }),
-  );
-  process.env.JIRA_BASE_URL = "https://env.atlassian.net";
-  process.env.JIRA_EMAIL = "env@example.com";
-  process.env.JIRA_API_TOKEN = "env-token";
-
+test("migration moves old JIRA_TEAM_FIELD_ID/JIRA_TEAM_ID into JIRA_SPACES.RL", () => {
+  writeConfig({
+    JIRA_BASE_URL: "https://x.atlassian.net",
+    JIRA_EMAIL: "a@b.com",
+    JIRA_API_TOKEN: "tok",
+    JIRA_TEAM_FIELD_ID: "customfield_001",
+    JIRA_TEAM_ID: "team-uuid",
+    JIRA_ACCOUNT_ID: "acct",
+    JIRA_PRODUCT_FIELD_ID: "customfield_12037",
+  });
   const config = require("./config");
-  assert.equal(config.get("JIRA_BASE_URL"), "https://disk.atlassian.net");
-  assert.equal(config.get("JIRA_EMAIL"), "disk@example.com");
+  const all = config.getAll();
+  assert.equal(all.JIRA_TEAM_FIELD_ID, undefined);
+  assert.equal(all.JIRA_TEAM_ID, undefined);
+  assert.deepEqual(all.JIRA_SPACES.RL.fields.team, "customfield_001");
+  assert.equal(all.JIRA_SPACES.RL.teamId, "team-uuid");
+  assert.equal(all.JIRA_SPACES.RL.fields.product, "customfield_12037");
+  const onDisk = readConfig();
+  assert.equal(onDisk.JIRA_TEAM_FIELD_ID, undefined);
+  assert.equal(onDisk.JIRA_TEAM_ID, undefined);
 });
 
-test("update merges patch and persists atomically", () => {
-  process.env.JIRA_BASE_URL = "";
-  process.env.JIRA_EMAIL = "";
-  process.env.JIRA_API_TOKEN = "";
+test("migration is idempotent", () => {
+  writeConfig({
+    JIRA_BASE_URL: "https://x.atlassian.net",
+    JIRA_EMAIL: "a@b.com",
+    JIRA_API_TOKEN: "tok",
+    JIRA_TEAM_FIELD_ID: "customfield_001",
+    JIRA_TEAM_ID: "team-uuid",
+    JIRA_ACCOUNT_ID: "acct",
+    JIRA_PRODUCT_FIELD_ID: "customfield_12037",
+  });
+  require("./config");
+  delete require.cache[require.resolve("./config")];
   const config = require("./config");
-
-  const next = config.update({ JIRA_BASE_URL: "https://new.atlassian.net" });
-  assert.equal(next.JIRA_BASE_URL, "https://new.atlassian.net");
-  assert.equal(config.get("JIRA_BASE_URL"), "https://new.atlassian.net");
-
-  const persisted = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
-  assert.equal(persisted.JIRA_BASE_URL, "https://new.atlassian.net");
-  assert.equal(fs.existsSync(path.join(tmpDir, "config.json.tmp")), false);
+  const all = config.getAll();
+  assert.equal(Object.keys(all.JIRA_SPACES).length, 1);
+  assert.equal(all.JIRA_SPACES.RL.fields.team, "customfield_001");
 });
 
-test("update ignores unknown keys", () => {
+test("getSpace returns space record", () => {
+  writeConfig({
+    JIRA_BASE_URL: "",
+    JIRA_EMAIL: "",
+    JIRA_API_TOKEN: "",
+    JIRA_ACCOUNT_ID: "",
+    JIRA_PRODUCT_FIELD_ID: "",
+    JIRA_SPACES: { CUS: { teamId: "", fields: { product: "customfield_12037" } } },
+  });
   const config = require("./config");
-  const next = config.update({ NOT_A_KEY: "x" });
-  assert.equal(next.NOT_A_KEY, undefined);
+  assert.deepEqual(config.getSpace("CUS"), {
+    teamId: "",
+    fields: { product: "customfield_12037" },
+  });
 });
 
-test("isConfigured is false when any required field is empty", () => {
-  fs.writeFileSync(
-    path.join(tmpDir, "config.json"),
-    JSON.stringify({
-      JIRA_BASE_URL: "https://x.atlassian.net",
-      JIRA_EMAIL: "",
-      JIRA_API_TOKEN: "tok",
-    }),
-  );
+test("getSpace returns null for unknown space", () => {
   const config = require("./config");
-  assert.equal(config.isConfigured(), false);
+  assert.equal(config.getSpace("NOPE"), null);
 });
 
-test("isConfigured is true when all required fields present", () => {
-  fs.writeFileSync(
-    path.join(tmpDir, "config.json"),
-    JSON.stringify({
-      JIRA_BASE_URL: "https://x.atlassian.net",
-      JIRA_EMAIL: "a@b.com",
-      JIRA_API_TOKEN: "tok",
-    }),
-  );
+test("setSpace persists a new space", () => {
+  const config = require("./config");
+  config.setSpace("CUS", {
+    teamId: "",
+    fields: { product: "customfield_12037", sprint: "customfield_10020" },
+    discoveredAt: "2026-05-24T00:00:00.000Z",
+  });
+  const onDisk = readConfig();
+  assert.equal(onDisk.JIRA_SPACES.CUS.fields.sprint, "customfield_10020");
+});
+
+test("isConfigured stays based on JIRA_BASE_URL/EMAIL/API_TOKEN only", () => {
+  writeConfig({
+    JIRA_BASE_URL: "https://x.atlassian.net",
+    JIRA_EMAIL: "a@b.com",
+    JIRA_API_TOKEN: "tok",
+    JIRA_ACCOUNT_ID: "",
+    JIRA_PRODUCT_FIELD_ID: "",
+  });
   const config = require("./config");
   assert.equal(config.isConfigured(), true);
-});
-
-test("TC_CONFIG_DIR overrides cwd for config location", () => {
-  const overrideDir = fs.mkdtempSync(path.join(os.tmpdir(), "tc-override-"));
-  try {
-    process.env.TC_CONFIG_DIR = overrideDir;
-    process.env.JIRA_BASE_URL = "https://override.atlassian.net";
-    process.env.JIRA_EMAIL = "o@example.com";
-    process.env.JIRA_API_TOKEN = "tok";
-
-    const config = require("./config");
-    config.update({ JIRA_BASE_URL: "https://override.atlassian.net" });
-
-    assert.equal(
-      fs.existsSync(path.join(overrideDir, "config.json")),
-      true,
-      "config.json should be in TC_CONFIG_DIR"
-    );
-    assert.equal(
-      fs.existsSync(path.join(tmpDir, "config.json")),
-      false,
-      "config.json should NOT be in cwd"
-    );
-  } finally {
-    delete process.env.TC_CONFIG_DIR;
-    fs.rmSync(overrideDir, { recursive: true, force: true });
-  }
 });
