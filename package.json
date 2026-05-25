@@ -11,7 +11,6 @@
     "dev:web": "concurrently \"node --watch server.js\" \"npm run dev --prefix client\"",
     "build": "npm run build --prefix client",
     "test": "node --test",
-    "mcp:discover": "node scripts/discover-jira-ids.js",
     "mcp:install": "node scripts/install-mcp.js",
     "mcp:smoke": "node scripts/smoke-create.js"
   },

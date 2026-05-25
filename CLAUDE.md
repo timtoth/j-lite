@@ -12,7 +12,6 @@ All commands run from the repo root unless noted.
 - `npm run package` — builds the Electron app into `out/<app>-<platform>-<arch>/` without producing an installer. Useful for smoke-testing the packaged layout.
 - `npm run make` — produces installers in `out/make/` for the host OS (Squirrel `.exe` on Windows, `.dmg`/`.zip` on macOS, `.deb`/`.rpm` on Linux). Run on the target OS — there is no cross-compile.
 - `npm test` — runs all `node --test` suites. Run a single file with `node --test <file>`. Filter to one test with `node --test --test-name-pattern="<regex>"`.
-- `npm run mcp:discover` — one-time discovery script. Populates the `JIRA_TEAM_FIELD_ID`, `JIRA_TEAM_ID`, `JIRA_ACCOUNT_ID` fields in `config.json`.
 - `npm run mcp:install` — manual escape hatch for registering the create-ticket MCP with the user's `claude` CLI. The packaged app runs the equivalent automatically on first launch.
 - `npm run mcp:smoke` — smoke test for the MCP create-ticket flow.
 
@@ -34,7 +33,7 @@ The product is a two-pane JIRA dashboard. The **left pane reads JIRA directly vi
 Folder selection uses Electron's native `dialog.showOpenDialog` via `window.tc.pickFolder()` (see Electron host section). In browser-only dev (`npm run dev:web`) the picker returns empty and the user types the path manually.
 
 ### create-jira-ticket MCP (`mcp/`)
-A standalone MCP stdio server (`create-ticket-server.mjs`) exposing one tool, `create_jira_ticket`. It is **not** loaded by this app's server — it is registered with the user's Claude Code CLI via `npm run mcp:install`, so the CLI invoked by `/api/instruct` (and any other Claude Code session) can call it. Ticket creation logic lives in `mcp/jira-create.js`; HTTP plumbing in `lib/jira-client.js`. The tool requires the discovered env vars (`JIRA_TEAM_FIELD_ID`, `JIRA_TEAM_ID`, `JIRA_ACCOUNT_ID`, `JIRA_PRODUCT_FIELD_ID`) — without them it throws "MCP not configured; run npm run mcp:discover".
+A standalone MCP stdio server (`create-ticket-server.mjs`) exposing two tools, `create_jira_ticket` and `discover_jira_space`. It is **not** loaded by this app's server — it is registered with the user's Claude Code CLI via `npm run mcp:install`, so the CLI invoked by `/api/instruct` (and any other Claude Code session) can call it. Ticket creation logic lives in `mcp/jira-create.js`; HTTP plumbing in `lib/jira-client.js`; field discovery in `lib/jira-discovery.js`. Per-space field IDs are read from `config.json`'s `JIRA_SPACES` map and auto-discovered on first use.
 
 ### Environment
 `.env` lives at the repo root and is loaded by `server.js`, the discovery script, and the MCP server. Use `.env.example` as the template. `JIRA_PRODUCT_FIELD_ID=customfield_12037` is a fixed instance-specific custom field.
