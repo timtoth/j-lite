@@ -7,6 +7,7 @@ import {
   SettingsPatch,
   DiscoveryResult,
   SettingsStatus,
+  JiraSpace,
 } from "./types";
 
 let cachedBase: string | null = null;
@@ -137,6 +138,28 @@ export async function discoverJiraIds(spaceKey?: string): Promise<DiscoveryResul
   const res = await apiFetch(path, { method: "POST" });
   if (!res.ok) {
     let message = "Discovery failed";
+    try {
+      const data = await res.json();
+      message = data.error || message;
+    } catch {
+      // response wasn't JSON — keep default message
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+export async function updateJiraSpace(
+  spaceKey: string,
+  patch: { teamId: string },
+): Promise<JiraSpace> {
+  const res = await apiFetch(`/api/settings/spaces/${encodeURIComponent(spaceKey)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) {
+    let message = "Failed to update space";
     try {
       const data = await res.json();
       message = data.error || message;
