@@ -1,0 +1,8 @@
+{
+  "JIRA_BASE_URL": "https://your-tenant.atlassian.net",
+  "JIRA_EMAIL": "you@example.com",
+  "JIRA_API_TOKEN": "",
+  "JIRA_ACCOUNT_ID": "",
+  "JIRA_PRODUCT_FIELD_ID": "customfield_12037",
+  "JIRA_SPACES": {}
+}
