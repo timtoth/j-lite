@@ -184,3 +184,113 @@ test("PUT /api/settings rejects non-string values", async () => {
   const res = await call(app, "PUT", "/api/settings", { JIRA_EMAIL: 12345 });
   assert.equal(res.status, 400);
 });
+
+test("POST /api/settings/discover without query updates account id and sweeps spaces", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: { RL: { teamId: "t1", fields: { team: "old" } } },
+    }),
+  );
+  const discoveryMock = require("../lib/jira-discovery");
+  const origAcct = discoveryMock.discoverAccountId;
+  const origFields = discoveryMock.discoverSpaceFields;
+  discoveryMock.discoverAccountId = async () => ({ id: "acct-1", label: "Me" });
+  discoveryMock.discoverSpaceFields = async (_req, key) => ({
+    teamId: "",
+    fields: {
+      team: `team-${key}`, fixVersions: "", storyPoints: "", sprint: "", product: "",
+    },
+  });
+  try {
+    const app = makeApp();
+    const res = await call(app, "POST", "/api/settings/discover");
+    assert.equal(res.status, 200);
+    assert.equal(res.json.accountId.id, "acct-1");
+    assert.equal(res.json.spaces.RL.fields.team, "team-RL");
+    const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+    assert.equal(onDisk.JIRA_ACCOUNT_ID, "acct-1");
+    assert.equal(onDisk.JIRA_SPACES.RL.fields.team, "team-RL");
+    // teamId is preserved across discovery (user-set, not overwritten by empty discovery)
+    assert.equal(onDisk.JIRA_SPACES.RL.teamId, "t1");
+  } finally {
+    discoveryMock.discoverAccountId = origAcct;
+    discoveryMock.discoverSpaceFields = origFields;
+  }
+});
+
+test("POST /api/settings/discover?space=KEY only touches that space", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "preexisting",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {},
+    }),
+  );
+  const discoveryMock = require("../lib/jira-discovery");
+  const origAcct = discoveryMock.discoverAccountId;
+  const origFields = discoveryMock.discoverSpaceFields;
+  let acctCalls = 0;
+  discoveryMock.discoverAccountId = async () => { acctCalls++; return { id: "x", label: "x" }; };
+  discoveryMock.discoverSpaceFields = async (_req, key) => ({
+    teamId: "", fields: { team: "", fixVersions: "", storyPoints: "", sprint: "customfield_10020", product: "" },
+  });
+  try {
+    const app = makeApp();
+    const res = await call(app, "POST", "/api/settings/discover?space=CUS");
+    assert.equal(res.status, 200);
+    assert.equal(res.json.accountId, null);
+    assert.equal(res.json.spaces.CUS.fields.sprint, "customfield_10020");
+    assert.equal(acctCalls, 0);
+    const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+    assert.equal(onDisk.JIRA_ACCOUNT_ID, "preexisting");
+    assert.equal(onDisk.JIRA_SPACES.CUS.fields.sprint, "customfield_10020");
+  } finally {
+    discoveryMock.discoverAccountId = origAcct;
+    discoveryMock.discoverSpaceFields = origFields;
+  }
+});
+
+test("POST /api/settings/discover returns per-space error without aborting", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {
+        RL: { teamId: "", fields: {} },
+        BAD: { teamId: "", fields: {} },
+      },
+    }),
+  );
+  const discoveryMock = require("../lib/jira-discovery");
+  const origAcct = discoveryMock.discoverAccountId;
+  const origFields = discoveryMock.discoverSpaceFields;
+  discoveryMock.discoverAccountId = async () => ({ id: "a", label: "a" });
+  discoveryMock.discoverSpaceFields = async (_req, key) => {
+    if (key === "BAD") throw new Error("not found");
+    return { teamId: "", fields: { team: "", fixVersions: "", storyPoints: "", sprint: "", product: "" } };
+  };
+  try {
+    const app = makeApp();
+    const res = await call(app, "POST", "/api/settings/discover");
+    assert.equal(res.status, 200);
+    assert.equal(res.json.spaces.BAD.error, "not found");
+    assert.ok(!res.json.spaces.RL.error);
+  } finally {
+    discoveryMock.discoverAccountId = origAcct;
+    discoveryMock.discoverSpaceFields = origFields;
+  }
+});

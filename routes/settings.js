@@ -3,7 +3,7 @@ const { spawn } = require("node:child_process");
 const config = require("../config");
 const logger = require("../logger");
 const { jiraRequest } = require("../lib/jira-client");
-const { discoverAccountId, discoverSpaceFields } = require("../lib/jira-discovery");
+const jiraDiscovery = require("../lib/jira-discovery");
 
 const router = Router();
 
@@ -58,10 +58,41 @@ router.put("/api/settings", (req, res) => {
   }
 });
 
-router.post("/api/settings/discover", async (req, res) => {
+async function refreshSpace(spaceKey) {
+  const existing = config.getSpace(spaceKey) || { teamId: "", fields: {} };
   try {
-    const result = await enrichIds(jiraRequest, config.getAll());
-    return res.json(result);
+    const fresh = await jiraDiscovery.discoverSpaceFields(jiraRequest, spaceKey);
+    const merged = {
+      teamId: existing.teamId || fresh.teamId || "",
+      fields: { ...existing.fields, ...fresh.fields },
+      discoveredAt: new Date().toISOString(),
+    };
+    config.setSpace(spaceKey, merged);
+    return merged;
+  } catch (err) {
+    return { ...existing, error: err.message };
+  }
+}
+
+router.post("/api/settings/discover", async (req, res) => {
+  const onlySpace = typeof req.query.space === "string" ? req.query.space.trim() : "";
+  const all = config.getAll();
+  if (!config.isConfigured()) {
+    return res.status(400).json({ error: "JIRA credentials not set." });
+  }
+  try {
+    if (onlySpace) {
+      const result = await refreshSpace(onlySpace);
+      return res.json({ accountId: null, spaces: { [onlySpace]: result } });
+    }
+    const accountIdResult = await jiraDiscovery.discoverAccountId(jiraRequest, all.JIRA_EMAIL);
+    config.update({ JIRA_ACCOUNT_ID: accountIdResult.id });
+    const spaceKeys = Object.keys(all.JIRA_SPACES || {});
+    const spaces = {};
+    for (const key of spaceKeys) {
+      spaces[key] = await refreshSpace(key);
+    }
+    return res.json({ accountId: accountIdResult, spaces });
   } catch (err) {
     logger.warn("CONFIG", `Discovery failed: ${err.message}`);
     return res.status(400).json({ error: err.message });
