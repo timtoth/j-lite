@@ -972,6 +972,92 @@ body {
   border-color: #3a3f47;
 }
 
+/* ---- Space Accordion ---- */
+.space-accordion {
+  border: 1px solid #3a3f47;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: #1a1d22;
+}
+
+.space-accordion__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.space-accordion__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.space-accordion__chevron {
+  font-size: 0.7rem;
+  color: #a8b0b9;
+}
+
+.space-accordion__count {
+  color: #a8b0b9;
+  font-size: 0.8rem;
+}
+
+.space-accordion__body {
+  padding: 8px 12px 12px;
+  border-top: 1px solid #3a3f47;
+}
+
+.space-accordion__field-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 3px 0;
+  color: #a8b0b9;
+}
+
+.space-accordion__field-row strong { color: #e6e8eb; }
+
+.space-accordion__refresh {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid #3a3f47;
+  color: #a8b0b9;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.add-space-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.add-space-form input {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #3a3f47;
+  background: #15181c;
+  color: #e6e8eb;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.add-space-form button {
+  background: #2a3f5a;
+  color: #e6e8eb;
+  border: 1px solid #3a4f6a;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .layout {
