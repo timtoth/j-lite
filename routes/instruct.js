@@ -12,7 +12,7 @@ function log(message) {
 const TICKET_KEY_REGEX = /[A-Z][A-Z0-9]+-\d+/g;
 
 router.post("/api/instruct", async (req, res) => {
-  const { instruction, cwd, sessionId } = req.body;
+  const { instruction, cwd, sessionId, space } = req.body;
 
   if (!instruction) {
     return res.status(400).json({ error: "instruction is required" });
@@ -33,7 +33,11 @@ router.post("/api/instruct", async (req, res) => {
     }
   }
 
-  const prompt = context + instruction;
+  let spaceContext = "";
+  if (typeof space === "string" && space.length > 0) {
+    spaceContext = `The user is working in JIRA space ${space}.\n\n`;
+  }
+  const prompt = spaceContext + context + instruction;
   log(`PROMPT: ${prompt}`);
   log(`SESSION: ${sessionId || "(new)"}`);
 
