@@ -3,7 +3,7 @@ const { spawn } = require("node:child_process");
 const config = require("../config");
 const logger = require("../logger");
 const { jiraRequest } = require("../lib/jira-client");
-const { enrichIds } = require("../lib/jira-discovery");
+const { discoverAccountId, discoverSpaceFields } = require("../lib/jira-discovery");
 
 const router = Router();
 
@@ -18,10 +18,9 @@ function shapeForClient(all) {
     JIRA_BASE_URL: all.JIRA_BASE_URL || "",
     JIRA_EMAIL: all.JIRA_EMAIL || "",
     JIRA_API_TOKEN: maskToken(all.JIRA_API_TOKEN),
-    JIRA_TEAM_FIELD_ID: all.JIRA_TEAM_FIELD_ID || "",
-    JIRA_TEAM_ID: all.JIRA_TEAM_ID || "",
     JIRA_ACCOUNT_ID: all.JIRA_ACCOUNT_ID || "",
     JIRA_PRODUCT_FIELD_ID: all.JIRA_PRODUCT_FIELD_ID || "",
+    JIRA_SPACES: all.JIRA_SPACES || {},
   };
 }
 
@@ -33,8 +32,6 @@ const ALLOWED_KEYS = [
   "JIRA_BASE_URL",
   "JIRA_EMAIL",
   "JIRA_API_TOKEN",
-  "JIRA_TEAM_FIELD_ID",
-  "JIRA_TEAM_ID",
   "JIRA_ACCOUNT_ID",
   "JIRA_PRODUCT_FIELD_ID",
 ];

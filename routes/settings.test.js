@@ -57,10 +57,9 @@ test("GET /api/settings masks the API token", async () => {
       JIRA_BASE_URL: "https://x.atlassian.net",
       JIRA_EMAIL: "me@x.com",
       JIRA_API_TOKEN: "ABCDEFGHIJ",
-      JIRA_TEAM_FIELD_ID: "",
-      JIRA_TEAM_ID: "",
       JIRA_ACCOUNT_ID: "",
       JIRA_PRODUCT_FIELD_ID: "customfield_12037",
+      JIRA_SPACES: {},
     }),
   );
   const app = makeApp();
@@ -68,6 +67,7 @@ test("GET /api/settings masks the API token", async () => {
   assert.equal(res.status, 200);
   assert.equal(res.json.JIRA_BASE_URL, "https://x.atlassian.net");
   assert.deepEqual(res.json.JIRA_API_TOKEN, { masked: true, last4: "GHIJ" });
+  assert.deepEqual(res.json.JIRA_SPACES, {});
 });
 
 test("GET /api/settings returns null token when unset", async () => {
@@ -77,10 +77,9 @@ test("GET /api/settings returns null token when unset", async () => {
       JIRA_BASE_URL: "",
       JIRA_EMAIL: "",
       JIRA_API_TOKEN: "",
-      JIRA_TEAM_FIELD_ID: "",
-      JIRA_TEAM_ID: "",
       JIRA_ACCOUNT_ID: "",
       JIRA_PRODUCT_FIELD_ID: "customfield_12037",
+      JIRA_SPACES: {},
     }),
   );
   const app = makeApp();
@@ -95,10 +94,9 @@ test("PUT /api/settings updates fields", async () => {
       JIRA_BASE_URL: "https://old.atlassian.net",
       JIRA_EMAIL: "old@x.com",
       JIRA_API_TOKEN: "OLDTOKEN1",
-      JIRA_TEAM_FIELD_ID: "",
-      JIRA_TEAM_ID: "",
       JIRA_ACCOUNT_ID: "",
       JIRA_PRODUCT_FIELD_ID: "customfield_12037",
+      JIRA_SPACES: {},
     }),
   );
   const app = makeApp();
@@ -119,10 +117,9 @@ test("PUT /api/settings without token field leaves token unchanged", async () =>
       JIRA_BASE_URL: "",
       JIRA_EMAIL: "",
       JIRA_API_TOKEN: "KEEPMETOKEN",
-      JIRA_TEAM_FIELD_ID: "",
-      JIRA_TEAM_ID: "",
       JIRA_ACCOUNT_ID: "",
       JIRA_PRODUCT_FIELD_ID: "customfield_12037",
+      JIRA_SPACES: {},
     }),
   );
   const app = makeApp();
@@ -142,10 +139,9 @@ test("PUT /api/settings with new token writes it", async () => {
       JIRA_BASE_URL: "",
       JIRA_EMAIL: "",
       JIRA_API_TOKEN: "OLD",
-      JIRA_TEAM_FIELD_ID: "",
-      JIRA_TEAM_ID: "",
       JIRA_ACCOUNT_ID: "",
       JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {},
     }),
   );
   const app = makeApp();
@@ -161,10 +157,9 @@ test("PUT /api/settings with empty token preserves stored token", async () => {
       JIRA_BASE_URL: "",
       JIRA_EMAIL: "",
       JIRA_API_TOKEN: "PRESERVED",
-      JIRA_TEAM_FIELD_ID: "",
-      JIRA_TEAM_ID: "",
       JIRA_ACCOUNT_ID: "",
       JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {},
     }),
   );
   const app = makeApp();
@@ -176,7 +171,14 @@ test("PUT /api/settings with empty token preserves stored token", async () => {
 test("PUT /api/settings rejects non-string values", async () => {
   fs.writeFileSync(
     path.join(tmpDir, "config.json"),
-    JSON.stringify({ JIRA_BASE_URL: "", JIRA_EMAIL: "", JIRA_API_TOKEN: "" }),
+    JSON.stringify({
+      JIRA_BASE_URL: "",
+      JIRA_EMAIL: "",
+      JIRA_API_TOKEN: "",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_PRODUCT_FIELD_ID: "",
+      JIRA_SPACES: {},
+    }),
   );
   const app = makeApp();
   const res = await call(app, "PUT", "/api/settings", { JIRA_EMAIL: 12345 });
