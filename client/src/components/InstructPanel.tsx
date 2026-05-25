@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, KeyboardEvent } from "react";
-import { sendInstruction } from "../api";
+import { sendInstruction, getSettings } from "../api";
 import { ChatMessage, ChatMessageData } from "./ChatMessage";
+import { SpaceModal } from "./SpaceModal";
 
 const FOLDER_STORAGE_KEY = "tc_folderPath";
 const CHAT_STORAGE_KEY = "tc_chat";
+const LAST_SPACE_KEY = "tc_lastSpace";
+const TICKET_KEY_REGEX = /[A-Z][A-Z0-9]+-\d+/g;
 
 interface Props {
   onInstructionSent: () => void;
@@ -49,6 +52,14 @@ export function InstructPanel({ onInstructionSent }: Props) {
   );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [knownSpaces, setKnownSpaces] = useState<string[]>([]);
+  const [pendingSend, setPendingSend] = useState<{ text: string; detected: string[] } | null>(null);
+
+  useEffect(() => {
+    getSettings()
+      .then((s) => setKnownSpaces(Object.keys(s.JIRA_SPACES || {})))
+      .catch(() => setKnownSpaces([]));
+  }, []);
 
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -112,24 +123,29 @@ export function InstructPanel({ onInstructionSent }: Props) {
     }
   }
 
-  async function handleSend() {
-    const text = input.trim();
-    if (!text || sending) return;
+  function detectSpaces(text: string): string[] {
+    const matches = text.match(TICKET_KEY_REGEX) ?? [];
+    const prefixes = matches
+      .map((k) => k.split("-")[0])
+      .filter((p, i, arr) => arr.indexOf(p) === i);
+    return prefixes;
+  }
 
+  async function actuallySend(text: string, space: string) {
     const userMessage: ChatMessageData = { role: "user", content: text };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setSending(true);
-
     try {
       const cwd = (localStorage.getItem(FOLDER_STORAGE_KEY) || "").trim() || undefined;
-      const result = await sendInstruction(text, cwd, sessionId);
+      const result = await sendInstruction(text, cwd, sessionId, space || null);
       const assistantMessage: ChatMessageData = {
         role: "assistant",
         content: result.response || "(empty response)",
       };
       setMessages((prev) => [...prev, assistantMessage]);
       if (result.sessionId) setSessionId(result.sessionId);
+      if (space) localStorage.setItem(LAST_SPACE_KEY, space);
       onInstructionSent();
     } catch (err) {
       const errorMessage: ChatMessageData = {
@@ -142,6 +158,22 @@ export function InstructPanel({ onInstructionSent }: Props) {
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleSend() {
+    const text = input.trim();
+    if (!text || sending) return;
+    const detected = detectSpaces(text);
+    if (detected.length === 1) {
+      return actuallySend(text, detected[0]);
+    }
+    if (detected.length === 0) {
+      const last = localStorage.getItem(LAST_SPACE_KEY);
+      if (last && knownSpaces.includes(last)) {
+        return actuallySend(text, last);
+      }
+    }
+    setPendingSend({ text, detected });
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -221,6 +253,19 @@ export function InstructPanel({ onInstructionSent }: Props) {
           {sending ? "Sending…" : "Send"}
         </button>
       </div>
+
+      {pendingSend && (
+        <SpaceModal
+          knownSpaces={knownSpaces}
+          detectedSpaces={pendingSend.detected}
+          onConfirm={(space) => {
+            const t = pendingSend.text;
+            setPendingSend(null);
+            actuallySend(t, space);
+          }}
+          onCancel={() => setPendingSend(null)}
+        />
+      )}
     </div>
   );
 }
