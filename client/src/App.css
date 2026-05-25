@@ -1032,6 +1032,68 @@ body {
   cursor: pointer;
 }
 
+.space-accordion__field-row--editable {
+  align-items: center;
+}
+
+.space-accordion__edit-btn {
+  background: none;
+  border: none;
+  color: #8b9cf7;
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0 4px;
+}
+
+.space-accordion__edit-btn:hover {
+  text-decoration: underline;
+}
+
+.space-accordion__edit-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.space-accordion__edit-row input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #3a3f47;
+  background: #15181c;
+  color: #e6e8eb;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.space-accordion__edit-row button {
+  background: #2a3f5a;
+  color: #e6e8eb;
+  border: 1px solid #3a4f6a;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.space-accordion__edit-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.space-accordion__edit-row button.cancel {
+  background: transparent;
+  border-color: #3a3f47;
+  color: #a8b0b9;
+}
+
+.space-accordion__edit-error {
+  color: #f5b7b1;
+  font-size: 0.78rem;
+  padding: 4px 0 0;
+}
+
 .add-space-form {
   display: flex;
   gap: 6px;

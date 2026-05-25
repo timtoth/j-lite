@@ -102,6 +102,12 @@ export function JiraProjectCard({
           spaceKey={key}
           space={space}
           onRefresh={async (k) => { await runDiscovery(k); }}
+          onUpdate={(k, next) => {
+            onValuesChange({
+              ...values,
+              JIRA_SPACES: { ...values.JIRA_SPACES, [k]: next },
+            });
+          }}
         />
       ))}
 
