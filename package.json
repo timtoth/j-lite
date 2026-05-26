@@ -1,0 +1,36 @@
+{
+  "name": "ticket-control",
+  "version": "0.1.0",
+  "description": "JIRA ticket viewer with Claude Code integration",
+  "author": "Tim Toth",
+  "license": "MIT",
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "dev:web": "concurrently \"node --watch server.js\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client",
+    "test": "node --test",
+    "mcp:install": "node scripts/install-mcp.js",
+    "mcp:smoke": "node scripts/smoke-create.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-dmg": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
+    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.11.2",
+    "concurrently": "^9.2.1",
+    "electron": "^32.3.3",
+    "typescript": "~5.7.0",
+    "vite": "^6.4.2"
+  }
+}

@@ -1,0 +1,35 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+client/dist/
+client/.vite/
+*.log
+
+# Local Claude Code overrides
+.claude/settings.local.json
+
+# Local-only docs (plans, specs, debugging screenshots)
+docs/
+
+# Build artifacts
+*.tsbuildinfo
+.vite/
+coverage/
+config.json
+config.json.tmp
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Electron
+out/
+.vite-port
+electron-state.json
