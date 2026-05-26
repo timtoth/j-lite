@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # Opt into Node.js 24 for JS actions ahead of GitHub's June 2026 default.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     strategy:
@@ -29,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
       - name: Install Linux build deps

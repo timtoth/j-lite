@@ -148,6 +148,15 @@ function createWindow(): void {
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("before-input-event", (_event, input) => {
+    if (input.type !== "keyDown") return;
+    if (input.key === "F12") {
+      mainWindow!.webContents.toggleDevTools();
+    } else if (input.key === "I" && input.control && input.shift) {
+      mainWindow!.webContents.toggleDevTools();
+    }
+  });
+
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const target = new URL(url);
     const current = new URL(mainWindow!.webContents.getURL());
