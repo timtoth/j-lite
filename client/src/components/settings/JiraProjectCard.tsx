@@ -23,10 +23,19 @@ export function JiraProjectCard({
   async function runDiscovery(spaceKey?: string): Promise<DiscoveryResult | null> {
     setDiscovering(true);
     setDiscoveryError(null);
+    const wasNew = !!spaceKey && !(spaceKey in (values.JIRA_SPACES ?? {}));
     try {
       const result = await discoverJiraIds(spaceKey);
       if (result.accountId && !spaceKey) {
         onChange({ ...patch, JIRA_ACCOUNT_ID: result.accountId.id });
+      }
+      // If a brand-new space failed discovery, surface the error inline and
+      // don't add it to local state — the server already declined to persist it.
+      if (spaceKey && wasNew && result.spaces?.[spaceKey]?.error) {
+        setDiscoveryError(
+          `Couldn't add space "${spaceKey}": ${result.spaces[spaceKey].error}`,
+        );
+        return result;
       }
       const nextSpaces = { ...values.JIRA_SPACES };
       for (const [k, v] of Object.entries(result.spaces)) {

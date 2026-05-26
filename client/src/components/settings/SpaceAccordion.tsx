@@ -26,11 +26,16 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
   const [teamError, setTeamError] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
-  async function handleRemove(e: React.MouseEvent) {
+  function requestRemove(e: React.MouseEvent) {
     e.stopPropagation();
-    const ok = window.confirm(`Remove space "${spaceKey}"? Re-discovery will recreate it.`);
-    if (!ok) return;
+    setConfirmingRemove(true);
+  }
+
+  async function confirmRemove(e: React.MouseEvent) {
+    e.stopPropagation();
+    setConfirmingRemove(false);
     setRemoving(true);
     setRemoveError(null);
     try {
@@ -40,6 +45,11 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
       setRemoveError(err instanceof Error ? err.message : "Remove failed");
       setRemoving(false);
     }
+  }
+
+  function cancelRemove(e: React.MouseEvent) {
+    e.stopPropagation();
+    setConfirmingRemove(false);
   }
 
   const fieldCount = FIELD_LABELS.filter(([k]) => !!space.fields?.[k]).length;
@@ -89,16 +99,38 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
           <span className="space-accordion__count">
             {fieldCount} field{fieldCount === 1 ? "" : "s"} discovered
           </span>
-          <button
-            type="button"
-            className="space-accordion__remove"
-            onClick={handleRemove}
-            disabled={removing}
-            aria-label={`Remove space ${spaceKey}`}
-            title="Remove space"
-          >
-            🗑
-          </button>
+          {confirmingRemove ? (
+            <div className="space-accordion__remove-confirm" onClick={(e) => e.stopPropagation()}>
+              <span className="space-accordion__remove-confirm-text">Remove?</span>
+              <button
+                type="button"
+                className="space-accordion__remove-confirm-yes"
+                onClick={confirmRemove}
+                disabled={removing}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                className="space-accordion__remove-confirm-no"
+                onClick={cancelRemove}
+                disabled={removing}
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="space-accordion__remove"
+              onClick={requestRemove}
+              disabled={removing}
+              aria-label={`Remove space ${spaceKey}`}
+              title="Remove space"
+            >
+              🗑
+            </button>
+          )}
         </div>
       </div>
       {removeError && (

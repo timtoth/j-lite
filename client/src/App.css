@@ -1111,6 +1111,47 @@ body {
   cursor: default;
 }
 
+.space-accordion__remove-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.space-accordion__remove-confirm-text {
+  color: #f5b7b1;
+}
+
+.space-accordion__remove-confirm-yes,
+.space-accordion__remove-confirm-no {
+  background: transparent;
+  border: 1px solid #3a3f47;
+  color: #e6e8eb;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.space-accordion__remove-confirm-yes {
+  border-color: #6a3a3a;
+  color: #f5b7b1;
+}
+
+.space-accordion__remove-confirm-yes:hover:not(:disabled) {
+  background: rgba(245, 183, 177, 0.12);
+}
+
+.space-accordion__remove-confirm-no:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.space-accordion__remove-confirm-yes:disabled,
+.space-accordion__remove-confirm-no:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .space-accordion__body {
   padding: 8px 12px 12px;
   border-top: 1px solid #3a3f47;
