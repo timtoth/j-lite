@@ -81,3 +81,13 @@ export interface ListResponse<T> {
   items: T[];
   error?: string;
 }
+
+export interface JiraProjectSummary {
+  key: string;
+  name: string;
+}
+
+export interface JiraProjectsResponse {
+  projects: JiraProjectSummary[];
+  cached: boolean;
+}

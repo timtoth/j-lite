@@ -48,33 +48,35 @@ export const EpicCard = memo(function EpicCard({ epic }: { epic: Epic }) {
         </button>
         <div className="ticket-summary">{epic.title}</div>
       </div>
-      {expanded && (
-        <div className="epic-children">
-          {loading && (
-            <span className="desc-loading">Loading child tickets...</span>
-          )}
-          {!loading && children && children.length === 0 && (
-            <div className="epic-children-empty">No child tickets found</div>
-          )}
-          {!loading &&
-            children &&
-            children.map((child) => (
-              <div key={child.key} className="epic-child-row">
-                <a
-                  className="ticket-key"
-                  href={child.url}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  {child.key}
-                </a>
-                <span className="epic-child-title">{child.title}</span>
-                <StatusBadge status={child.status} />
-                <span className="epic-child-assignee">{child.assignee}</span>
-              </div>
-            ))}
+      <div className={`collapsible${expanded ? " is-open" : ""}`} aria-hidden={!expanded}>
+        <div className="collapsible__inner">
+          <div className="epic-children">
+            {loading && (
+              <span className="desc-loading">Loading child tickets...</span>
+            )}
+            {!loading && children && children.length === 0 && (
+              <div className="epic-children-empty">No child tickets found</div>
+            )}
+            {!loading &&
+              children &&
+              children.map((child) => (
+                <div key={child.key} className="epic-child-row">
+                  <a
+                    className="ticket-key"
+                    href={child.url}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {child.key}
+                  </a>
+                  <span className="epic-child-title">{child.title}</span>
+                  <StatusBadge status={child.status} />
+                  <span className="epic-child-assignee">{child.assignee}</span>
+                </div>
+              ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }, (prev, next) => prev.epic.key === next.epic.key && prev.epic.status === next.epic.status && prev.epic.title === next.epic.title);

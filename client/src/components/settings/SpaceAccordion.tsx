@@ -65,14 +65,15 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate }: Props) 
     <div className="space-accordion">
       <div className="space-accordion__header" onClick={() => setOpen(!open)}>
         <div className="space-accordion__title">
-          <span className="space-accordion__chevron">{open ? "▼" : "▶"}</span>
+          <span className={`space-accordion__chevron${open ? " is-open" : ""}`}>▶</span>
           {spaceKey}
         </div>
         <span className="space-accordion__count">
           {fieldCount} field{fieldCount === 1 ? "" : "s"} discovered
         </span>
       </div>
-      {open && (
+      <div className={`collapsible${open ? " is-open" : ""}`} aria-hidden={!open}>
+        <div className="collapsible__inner">
         <div className="space-accordion__body">
           {editingTeam ? (
             <div className="space-accordion__edit-row">
@@ -119,7 +120,8 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate }: Props) 
             {refreshing ? "Refreshing…" : "Re-discover this space"}
           </button>
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -48,15 +48,17 @@ export const TicketCard = memo(function TicketCard({ ticket }: { ticket: Ticket 
         </button>
         <div className="ticket-summary">{ticket.title}</div>
       </div>
-      {expanded && (
-        <div className="ticket-description visible">
-          {loading ? (
-            <span className="desc-loading">Loading...</span>
-          ) : (
-            <div dangerouslySetInnerHTML={{ __html: description || "" }} />
-          )}
+      <div className={`collapsible${expanded ? " is-open" : ""}`} aria-hidden={!expanded}>
+        <div className="collapsible__inner">
+          <div className="ticket-description">
+            {loading ? (
+              <span className="desc-loading">Loading...</span>
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: description || "" }} />
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }, (prev, next) => prev.ticket.key === next.ticket.key && prev.ticket.status === next.ticket.status && prev.ticket.title === next.ticket.title);

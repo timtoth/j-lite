@@ -8,6 +8,7 @@ const ticketsRouter = require("./routes/tickets");
 const instructRouter = require("./routes/instruct");
 const epicsRouter = require("./routes/epics");
 const settingsRouter = require("./routes/settings");
+const projectsRouter = require("./routes/projects");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use(ticketsRouter);
 app.use(instructRouter);
 app.use(epicsRouter);
 app.use(settingsRouter);
+app.use(projectsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -8,6 +8,7 @@ import {
   DiscoveryResult,
   SettingsStatus,
   JiraSpace,
+  JiraProjectsResponse,
 } from "./types";
 
 let cachedBase: string | null = null;
@@ -160,6 +161,21 @@ export async function updateJiraSpace(
   });
   if (!res.ok) {
     let message = "Failed to update space";
+    try {
+      const data = await res.json();
+      message = data.error || message;
+    } catch {
+      // response wasn't JSON — keep default message
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+export async function fetchJiraProjects(): Promise<JiraProjectsResponse> {
+  const res = await apiFetch("/api/jira/projects");
+  if (!res.ok) {
+    let message = "Failed to load projects";
     try {
       const data = await res.json();
       message = data.error || message;

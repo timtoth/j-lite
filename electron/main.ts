@@ -148,6 +148,18 @@ function createWindow(): void {
     return { action: "deny" };
   });
 
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    const target = new URL(url);
+    const current = new URL(mainWindow!.webContents.getURL());
+    const sameOrigin =
+      target.protocol === current.protocol &&
+      target.host === current.host;
+    if (!sameOrigin) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
   loadWindow(mainWindow);
 
   mainWindow.on("closed", () => {
