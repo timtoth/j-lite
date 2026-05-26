@@ -49,6 +49,19 @@ body {
   letter-spacing: -0.01em;
 }
 
+.ticket-panel .panel-header__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ticket-panel .panel-header__subtitle {
+  font-size: 0.78rem;
+  color: #8b94a3;
+  margin: 0;
+  font-weight: 400;
+}
+
 /* ---- Tab Bar ---- */
 .tab-bar {
   display: flex;
@@ -1068,6 +1081,34 @@ body {
 .space-accordion__count {
   color: #a8b0b9;
   font-size: 0.8rem;
+}
+
+.space-accordion__header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.space-accordion__remove {
+  background: none;
+  border: none;
+  color: #8b94a3;
+  font-size: 0.95rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.space-accordion__remove:hover:not(:disabled) {
+  color: #f5b7b1;
+  background: rgba(245, 183, 177, 0.1);
+}
+
+.space-accordion__remove:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .space-accordion__body {

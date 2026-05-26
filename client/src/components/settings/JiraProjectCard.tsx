@@ -108,6 +108,11 @@ export function JiraProjectCard({
               JIRA_SPACES: { ...values.JIRA_SPACES, [k]: next },
             });
           }}
+          onRemove={(k) => {
+            const nextSpaces = { ...values.JIRA_SPACES };
+            delete nextSpaces[k];
+            onValuesChange({ ...values, JIRA_SPACES: nextSpaces });
+          }}
         />
       ))}
 

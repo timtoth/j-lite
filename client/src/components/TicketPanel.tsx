@@ -54,7 +54,12 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
   return (
     <div className="ticket-panel">
       <div className="panel-header">
-        <h1>{activeTab === "todo" ? "My Todo" : "Epics"}</h1>
+        <div className="panel-header__title">
+          <h1>{activeTab === "todo" ? "My Todo" : "Epics"}</h1>
+          <p className="panel-header__subtitle">
+            {activeTab === "todo" ? "Tickets assigned to me" : "Epics that I have work under"}
+          </p>
+        </div>
         <div className="panel-header__actions">
           <button
             className="refresh-btn refresh-btn--primary"

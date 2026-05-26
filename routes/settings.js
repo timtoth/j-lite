@@ -100,6 +100,19 @@ router.post("/api/settings/discover", async (req, res) => {
   }
 });
 
+router.delete("/api/settings/spaces/:key", (req, res) => {
+  const key = req.params.key;
+  try {
+    const removed = config.deleteSpace(key);
+    if (!removed) return res.status(404).json({ error: `Unknown space: ${key}` });
+    logger.info("CONFIG", `Removed space ${key}`);
+    return res.status(204).end();
+  } catch (err) {
+    logger.error("CONFIG", `Failed to remove space ${key}: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 router.put("/api/settings/spaces/:key", (req, res) => {
   const key = req.params.key;
   const body = req.body || {};

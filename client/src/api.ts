@@ -172,6 +172,22 @@ export async function updateJiraSpace(
   return res.json();
 }
 
+export async function deleteJiraSpace(spaceKey: string): Promise<void> {
+  const res = await apiFetch(`/api/settings/spaces/${encodeURIComponent(spaceKey)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 204) {
+    let message = "Failed to remove space";
+    try {
+      const data = await res.json();
+      message = data.error || message;
+    } catch {
+      // response wasn't JSON — keep default message
+    }
+    throw new Error(message);
+  }
+}
+
 export async function fetchJiraProjects(): Promise<JiraProjectsResponse> {
   const res = await apiFetch("/api/jira/projects");
   if (!res.ok) {

@@ -147,4 +147,16 @@ function setSpace(key, record) {
   return getSpace(key);
 }
 
-module.exports = { get, getAll, isConfigured, update, getSpace, setSpace, KEYS, REQUIRED_KEYS };
+function deleteSpace(key) {
+  refreshIfStale();
+  if (!state.JIRA_SPACES || !(key in state.JIRA_SPACES)) return false;
+  const nextSpaces = { ...state.JIRA_SPACES };
+  delete nextSpaces[key];
+  const next = { ...state, JIRA_SPACES: nextSpaces };
+  writeAtomic(configPath(), JSON.stringify(next, null, 2) + "\n");
+  state = next;
+  stateMtimeMs = currentMtimeMs();
+  return true;
+}
+
+module.exports = { get, getAll, isConfigured, update, getSpace, setSpace, deleteSpace, KEYS, REQUIRED_KEYS };

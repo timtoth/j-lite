@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { JiraSpace } from "../../types";
-import { updateJiraSpace } from "../../api";
+import { updateJiraSpace, deleteJiraSpace } from "../../api";
 
 interface Props {
   spaceKey: string;
   space: JiraSpace;
   onRefresh: (key: string) => Promise<void>;
   onUpdate: (key: string, next: JiraSpace) => void;
+  onRemove: (key: string) => void;
 }
 
 const FIELD_LABELS: Array<[keyof JiraSpace["fields"], string]> = [
@@ -17,13 +18,30 @@ const FIELD_LABELS: Array<[keyof JiraSpace["fields"], string]> = [
   ["product", "Product field"],
 ];
 
-export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate }: Props) {
+export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove }: Props) {
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
   const [draftTeamId, setDraftTeamId] = useState("");
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamError, setTeamError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  async function handleRemove(e: React.MouseEvent) {
+    e.stopPropagation();
+    const ok = window.confirm(`Remove space "${spaceKey}"? Re-discovery will recreate it.`);
+    if (!ok) return;
+    setRemoving(true);
+    setRemoveError(null);
+    try {
+      await deleteJiraSpace(spaceKey);
+      onRemove(spaceKey);
+    } catch (err) {
+      setRemoveError(err instanceof Error ? err.message : "Remove failed");
+      setRemoving(false);
+    }
+  }
 
   const fieldCount = FIELD_LABELS.filter(([k]) => !!space.fields?.[k]).length;
 
@@ -68,10 +86,27 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate }: Props) 
           <span className={`space-accordion__chevron${open ? " is-open" : ""}`}>▶</span>
           {spaceKey}
         </div>
-        <span className="space-accordion__count">
-          {fieldCount} field{fieldCount === 1 ? "" : "s"} discovered
-        </span>
+        <div className="space-accordion__header-right">
+          <span className="space-accordion__count">
+            {fieldCount} field{fieldCount === 1 ? "" : "s"} discovered
+          </span>
+          <button
+            type="button"
+            className="space-accordion__remove"
+            onClick={handleRemove}
+            disabled={removing}
+            aria-label={`Remove space ${spaceKey}`}
+            title="Remove space"
+          >
+            🗑
+          </button>
+        </div>
       </div>
+      {removeError && (
+        <div className="settings-error" style={{ padding: "0 12px 8px" }}>
+          {removeError}
+        </div>
+      )}
       <div className={`collapsible${open ? " is-open" : ""}`} aria-hidden={!open}>
         <div className="collapsible__inner">
         <div className="space-accordion__body">
