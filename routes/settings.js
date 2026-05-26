@@ -70,17 +70,18 @@ async function refreshSpace(spaceKey) {
     config.setSpace(spaceKey, merged);
     return merged;
   } catch (err) {
+    logger.warn("DISCOVERY", `Space ${spaceKey} failed: ${err.message}\n${err.stack}`);
     return { ...existing, error: err.message };
   }
 }
 
 router.post("/api/settings/discover", async (req, res) => {
-  const onlySpace = typeof req.query.space === "string" ? req.query.space.trim() : "";
-  const all = config.getAll();
-  if (!config.isConfigured()) {
-    return res.status(400).json({ error: "JIRA credentials not set." });
-  }
   try {
+    const onlySpace = typeof req.query.space === "string" ? req.query.space.trim() : "";
+    const all = config.getAll();
+    if (!config.isConfigured()) {
+      return res.status(400).json({ error: "JIRA credentials not set." });
+    }
     if (onlySpace) {
       const result = await refreshSpace(onlySpace);
       return res.json({ accountId: null, spaces: { [onlySpace]: result } });
@@ -94,8 +95,8 @@ router.post("/api/settings/discover", async (req, res) => {
     }
     return res.json({ accountId: accountIdResult, spaces });
   } catch (err) {
-    logger.warn("CONFIG", `Discovery failed: ${err.message}`);
-    return res.status(400).json({ error: err.message });
+    logger.warn("CONFIG", `Discovery failed: ${err.message}\n${err.stack}`);
+    return res.status(500).json({ error: err.message });
   }
 });
 
