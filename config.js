@@ -81,20 +81,44 @@ function load() {
 }
 
 let state = load();
+let stateMtimeMs = currentMtimeMs();
+
+function currentMtimeMs() {
+  try {
+    return fs.statSync(configPath()).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+// Reload state if another process has written the file since we last read it.
+// MCP and Express each hold their own in-memory state, so without this,
+// changes made by the MCP would be invisible to the server until restart.
+function refreshIfStale() {
+  const mtime = currentMtimeMs();
+  if (mtime && mtime !== stateMtimeMs) {
+    state = load();
+    stateMtimeMs = currentMtimeMs();
+  }
+}
 
 function get(key) {
+  refreshIfStale();
   return state[key] ?? "";
 }
 
 function getAll() {
+  refreshIfStale();
   return JSON.parse(JSON.stringify(state));
 }
 
 function isConfigured() {
+  refreshIfStale();
   return REQUIRED_KEYS.every((k) => state[k] && state[k].length > 0);
 }
 
 function update(patch) {
+  refreshIfStale();
   const next = { ...state };
   for (const [k, v] of Object.entries(patch || {})) {
     if (!KEYS.includes(k)) continue;
@@ -103,19 +127,23 @@ function update(patch) {
   next.JIRA_SPACES = state.JIRA_SPACES || {};
   writeAtomic(configPath(), JSON.stringify(next, null, 2) + "\n");
   state = next;
+  stateMtimeMs = currentMtimeMs();
   return getAll();
 }
 
 function getSpace(key) {
+  refreshIfStale();
   if (!state.JIRA_SPACES || !state.JIRA_SPACES[key]) return null;
   return JSON.parse(JSON.stringify(state.JIRA_SPACES[key]));
 }
 
 function setSpace(key, record) {
+  refreshIfStale();
   const next = { ...state, JIRA_SPACES: { ...(state.JIRA_SPACES || {}) } };
   next.JIRA_SPACES[key] = JSON.parse(JSON.stringify(record));
   writeAtomic(configPath(), JSON.stringify(next, null, 2) + "\n");
   state = next;
+  stateMtimeMs = currentMtimeMs();
   return getSpace(key);
 }
 

@@ -19,14 +19,11 @@ function writeState(configDir, state) {
   fs.writeFileSync(statePath(configDir), JSON.stringify(state, null, 2));
 }
 
-function runClaudeAdd(spawn, mcpEntry) {
+function runClaude(spawn, args) {
   return new Promise((resolve) => {
     let settled = false;
-    const proc = spawn(
-      "claude",
-      ["mcp", "add", "-s", "user", "create-jira-ticket", "--", "node", mcpEntry],
-      { stdio: "ignore" }
-    );
+    // shell: true so Windows resolves claude.cmd / claude.ps1 from PATH.
+    const proc = spawn("claude", args, { stdio: "ignore", shell: true });
     proc.on("error", () => {
       if (!settled) {
         settled = true;
@@ -42,14 +39,29 @@ function runClaudeAdd(spawn, mcpEntry) {
   });
 }
 
+async function runClaudeAdd(spawn, mcpEntry, configDir) {
+  // Remove first so an existing registration without TC_CONFIG_DIR (or with a
+  // stale path) gets replaced. We ignore the exit code — remove fails when
+  // there's nothing to remove, which is fine.
+  await runClaude(spawn, ["mcp", "remove", "-s", "user", "create-jira-ticket"]);
+  // Arg order matters: the name must come BEFORE -e, otherwise `claude mcp add`
+  // greedily consumes the next token as another env var.
+  return runClaude(spawn, [
+    "mcp", "add", "-s", "user",
+    "create-jira-ticket",
+    "-e", `TC_CONFIG_DIR=${configDir}`,
+    "--", "node", mcpEntry,
+  ]);
+}
+
 async function registerMcpIfNeeded({ mcpEntry, configDir, spawn }) {
   const state = readState(configDir);
-  if (state.mcpRegistered === true) {
+  if (state.mcpRegistered === true && state.mcpConfigDir === configDir) {
     return { attempted: false, success: false };
   }
-  const success = await runClaudeAdd(spawn, mcpEntry);
+  const success = await runClaudeAdd(spawn, mcpEntry, configDir);
   if (success) {
-    writeState(configDir, { ...state, mcpRegistered: true });
+    writeState(configDir, { ...state, mcpRegistered: true, mcpConfigDir: configDir });
   }
   return { attempted: true, success };
 }

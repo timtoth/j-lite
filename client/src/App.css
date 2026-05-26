@@ -946,18 +946,9 @@ body {
   color: #a8b0b9;
 }
 
-.space-modal__options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.space-modal__combo {
+  position: relative;
   margin-bottom: 14px;
-}
-
-.space-modal__option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
 }
 
 .space-modal__free-text {
@@ -967,6 +958,52 @@ body {
   background: #15181c;
   color: #e6e8eb;
   border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.space-modal__suggestions {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #1b1f25;
+  border: 1px solid #3a3f47;
+  border-radius: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.space-modal__suggestions li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #e6e8eb;
+}
+
+.space-modal__suggestions li.is-active {
+  background: #2a3f5a;
+}
+
+.space-modal__suggestion-key {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: #9bb4d4;
+  min-width: 56px;
+}
+
+.space-modal__suggestion-name {
+  color: #c8ccd1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .space-modal__actions {
