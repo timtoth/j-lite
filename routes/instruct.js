@@ -47,8 +47,11 @@ router.post("/api/instruct", async (req, res) => {
   }
   args.push(prompt);
 
+  // 10 minutes — tool-heavy MCP turns (space re-discovery, multi-step ticket
+  // creation) routinely exceed the old 2-minute cap.
+  const TIMEOUT_MS = 600_000;
+
   const spawnOpts = {
-    timeout: 120_000,
     shell: false,
     stdio: ["ignore", "pipe", "pipe"],
   };
@@ -58,17 +61,26 @@ router.post("/api/instruct", async (req, res) => {
 
   let stdout = "";
   let stderr = "";
+  let timedOut = false;
+
+  const killTimer = setTimeout(() => {
+    timedOut = true;
+    log(`TIMEOUT: killing Claude CLI after ${TIMEOUT_MS}ms`);
+    child.kill("SIGTERM");
+  }, TIMEOUT_MS);
 
   child.stdout.on("data", (chunk) => { stdout += chunk; });
   child.stderr.on("data", (chunk) => { stderr += chunk; });
 
   child.on("error", (err) => {
+    clearTimeout(killTimer);
     log(`SPAWN ERROR: ${err.message}`);
     if (!res.headersSent) res.status(500).json({ error: err.message });
   });
 
-  child.on("close", (code) => {
-    log(`EXIT CODE: ${code}`);
+  child.on("close", (code, signal) => {
+    clearTimeout(killTimer);
+    log(`EXIT CODE: ${code} SIGNAL: ${signal ?? "none"}${timedOut ? " (timeout)" : ""}`);
     log(`STDOUT: ${stdout.slice(0, 2000)}`);
     log(`STDERR: ${stderr}`);
     if (res.headersSent) return;
@@ -82,14 +94,21 @@ router.post("/api/instruct", async (req, res) => {
       }
     }
 
-    // If the CLI reported an error (either via non-zero exit or is_error in JSON),
-    // surface the most informative message we can find.
-    const cliReportedError = code !== 0 || (parsed && parsed.is_error);
+    // If the CLI reported an error (either via non-zero exit, signal-kill, or
+    // is_error in JSON), surface the most informative message we can find.
+    const cliReportedError =
+      code !== 0 || signal !== null || (parsed && parsed.is_error);
     if (cliReportedError) {
+      let fallback;
+      if (timedOut) {
+        fallback = `Claude CLI timed out after ${Math.round(TIMEOUT_MS / 1000)}s and was terminated`;
+      } else if (signal) {
+        fallback = `Claude CLI was killed by signal ${signal}`;
+      } else {
+        fallback = `Claude CLI exited with code ${code}`;
+      }
       const message =
-        (parsed && parsed.result) ||
-        stderr.trim() ||
-        `Claude CLI exited with code ${code}`;
+        (parsed && parsed.result) || stderr.trim() || fallback;
       return res.status(500).json({ error: message });
     }
 
