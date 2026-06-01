@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, KeyboardEvent } from "react";
-import { sendInstruction, getSettings } from "../api";
+import { streamInstruction, getSettings } from "../api";
 import { ChatMessage, ChatMessageData } from "./ChatMessage";
 import { SpaceModal } from "./SpaceModal";
 
@@ -65,10 +65,18 @@ export function InstructPanel({ onInstructionSent }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const manualHeightRef = useRef<number | null>(null);
   const prevInputRef = useRef<string>("");
+  const currentStreamRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     saveChat({ sessionId, messages });
   }, [sessionId, messages]);
+
+  useEffect(() => {
+    return () => {
+      currentStreamRef.current?.abort();
+      currentStreamRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const el = transcriptRef.current;
@@ -109,6 +117,8 @@ export function InstructPanel({ onInstructionSent }: Props) {
   }, []);
 
   function handleNewChat() {
+    currentStreamRef.current?.abort();
+    currentStreamRef.current = null;
     setSessionId(null);
     setMessages([]);
     manualHeightRef.current = null;
@@ -133,30 +143,77 @@ export function InstructPanel({ onInstructionSent }: Props) {
 
   async function actuallySend(text: string, space: string) {
     const userMessage: ChatMessageData = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMessage]);
+    const liveAssistant: ChatMessageData = { role: "assistant", content: "" };
+    setMessages((prev) => [...prev, userMessage, liveAssistant]);
     setInput("");
     setSending(true);
+
+    const ctrl = new AbortController();
+    currentStreamRef.current = ctrl;
+
+    const cwd = (localStorage.getItem(FOLDER_STORAGE_KEY) || "").trim() || undefined;
+
+    let sawError = false;
+
     try {
-      const cwd = (localStorage.getItem(FOLDER_STORAGE_KEY) || "").trim() || undefined;
-      const result = await sendInstruction(text, cwd, sessionId, space || null);
-      const assistantMessage: ChatMessageData = {
-        role: "assistant",
-        content: result.response || "(empty response)",
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const result = await streamInstruction(
+        { instruction: text, cwd, sessionId, space: space || null },
+        {
+          onDelta: (delta) => {
+            setMessages((prev) => {
+              if (prev.length === 0) return prev;
+              const next = prev.slice();
+              const last = next[next.length - 1];
+              if (last.role !== "assistant" || last.error) return prev;
+              next[next.length - 1] = { ...last, content: last.content + delta };
+              return next;
+            });
+          },
+          onError: (message) => {
+            sawError = true;
+            setMessages((prev) => {
+              if (prev.length === 0) return prev;
+              const next = prev.slice();
+              const last = next[next.length - 1];
+              if (last.role !== "assistant") return prev;
+              next[next.length - 1] = {
+                role: "assistant",
+                content: "Error: " + message,
+                error: true,
+              };
+              return next;
+            });
+          },
+        },
+        ctrl.signal,
+      );
+
       if (result.sessionId) setSessionId(result.sessionId);
       if (space) localStorage.setItem(LAST_SPACE_KEY, space);
       onInstructionSent();
     } catch (err) {
-      const errorMessage: ChatMessageData = {
-        role: "assistant",
-        content:
-          "Error: " + (err instanceof Error ? err.message : "Something went wrong"),
-        error: true,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      if (err instanceof Error && err.name === "AbortError") {
+        // Cancellation: New Chat / unmount already cleared the messages or will.
+        // Do not write an error bubble.
+      } else if (!sawError) {
+        // Surface unexpected transport errors as a final-message error bubble.
+        const message = err instanceof Error ? err.message : "Something went wrong";
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const next = prev.slice();
+          const last = next[next.length - 1];
+          if (last.role !== "assistant") return prev;
+          next[next.length - 1] = {
+            role: "assistant",
+            content: "Error: " + message,
+            error: true,
+          };
+          return next;
+        });
+      }
     } finally {
       setSending(false);
+      currentStreamRef.current = null;
     }
   }
 
@@ -226,13 +283,6 @@ export function InstructPanel({ onInstructionSent }: Props) {
         {messages.map((m, i) => (
           <ChatMessage key={i} message={m} />
         ))}
-        {sending && (
-          <div className="chat-message chat-message--assistant chat-message--thinking">
-            <div className="chat-message-bubble">
-              <span className="spinner" /> Thinking&hellip;
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="chat-input-row">
