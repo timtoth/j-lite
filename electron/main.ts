@@ -7,6 +7,7 @@ import { findFreePort } from "./free-port";
 import { buildServerSpawn } from "./spawn-args";
 import { registerMcpIfNeeded } from "./mcp-register";
 import { serverEntry, mcpEntry, configDir, isDev } from "./paths";
+import { migrateUserData } from "./migrate-userdata.impl.js";
 import { IPC } from "./types";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -80,7 +81,7 @@ async function startServer(): Promise<number> {
       dialog
         .showMessageBox(mainWindow, {
           type: "error",
-          title: "ticket-control",
+          title: "j-Lite",
           message: "Server stopped unexpectedly.",
           detail: tail,
           buttons: ["Restart", "Quit"],
@@ -111,7 +112,7 @@ async function restartServer(): Promise<void> {
   } catch (err) {
     if (mainWindow) {
       dialog.showErrorBox(
-        "ticket-control",
+        "j-Lite",
         `Failed to restart server: ${(err as Error).message}`
       );
     }
@@ -135,6 +136,7 @@ function createWindow(): void {
     width: 1280,
     height: 800,
     autoHideMenuBar: true,
+    title: "j-Lite",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -182,11 +184,29 @@ ipcMain.handle(IPC.GET_SERVER_PORT, () => {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+
+  try {
+    const oldUserData = path.join(app.getPath("appData"), "ticket-control");
+    const newUserData = app.getPath("userData");
+    const result = migrateUserData({
+      oldDir: oldUserData,
+      newDir: newUserData,
+      fs,
+    });
+    if (result.migrated) {
+      console.log(
+        `[j-Lite] migrated userData from ${oldUserData}: ${result.copied.join(", ")}`
+      );
+    }
+  } catch (err) {
+    console.error("[j-Lite] userData migration failed:", err);
+  }
+
   try {
     serverPort = await startServer();
   } catch (err) {
     dialog.showErrorBox(
-      "ticket-control",
+      "j-Lite",
       `Failed to start server: ${(err as Error).message}`
     );
     app.quit();
