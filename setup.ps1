@@ -1,9 +1,9 @@
-# Ticket Control - Windows Setup Script
+# j-Lite - Windows Setup Script
 # Run this script in PowerShell as Administrator
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Ticket Control - Windows Setup ===" -ForegroundColor Cyan
+Write-Host "=== j-Lite - Windows Setup ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if running as Administrator
