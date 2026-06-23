@@ -15,10 +15,6 @@ function makeFakeFs(initial) {
     mkdirSync: (p, _opts) => {
       dirs.add(p);
     },
-    readFileSync: (p) => {
-      if (!files.has(p)) throw new Error("ENOENT: " + p);
-      return files.get(p);
-    },
     copyFileSync: (src, dest) => {
       if (!files.has(src)) throw new Error("ENOENT: " + src);
       files.set(dest, files.get(src));
@@ -37,7 +33,7 @@ test("copies config.json and app.log from old dir when new dir is fresh", () => 
   const result = migrateUserData({ oldDir, newDir, fs });
 
   assert.equal(result.migrated, true);
-  assert.deepEqual(result.copied.sort(), ["app.log", "config.json"]);
+  assert.deepEqual(result.copied, ["config.json", "app.log"]);
   assert.equal(fs.files.get(path.join(newDir, "config.json")), '{"hello":"world"}');
   assert.equal(fs.files.get(path.join(newDir, "app.log")), "log line");
 });

@@ -186,6 +186,8 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   try {
+    // "ticket-control" was the legacy Electron userData dir name (pre-rename, when
+    // app.getName() returned the package.json `name` because productName wasn't set).
     const oldUserData = path.join(app.getPath("appData"), "ticket-control");
     const newUserData = app.getPath("userData");
     const result = migrateUserData({
