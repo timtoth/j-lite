@@ -230,6 +230,88 @@ test("createJiraTicket rejects custom_field value outside allowedValues", async 
   );
 });
 
+test("createJiraTicket throws actionable error when required custom field is omitted", async () => {
+  await assert.rejects(
+    createJiraTicket(
+      { summary: "x", description: "y", parent_epic_key: "ABC-1", issue_type: "Story" },
+      {
+        jiraRequest: async () => { throw new Error("should not call jira"); },
+        getJiraBaseUrl: () => "https://x.atlassian.net",
+        env: {},
+        getSpace: () => ({
+          teamId: "", fields: {},
+          customFields: {
+            product: { fieldId: "customfield_12037", allowedValues: ["Alpha", "Beta"], required: true },
+          },
+        }),
+        setSpace: () => {},
+        discoverSpace: async () => { throw new Error("should not call"); },
+      },
+    ),
+    /Missing required custom_fields for space ABC.*"product".*Alpha.*Beta/,
+  );
+});
+
+test("createJiraTicket succeeds when required custom field is provided", async () => {
+  const calls = [];
+  const jiraRequest = async (method, path, body) => {
+    calls.push({ method, path, body });
+    return { key: "ABC-9" };
+  };
+  const result = await createJiraTicket(
+    {
+      summary: "x", description: "y", parent_epic_key: "ABC-1", issue_type: "Story",
+      custom_fields: { product: "Alpha" },
+    },
+    {
+      jiraRequest,
+      getJiraBaseUrl: () => "https://x.atlassian.net",
+      env: {},
+      getSpace: () => ({
+        teamId: "", fields: {},
+        customFields: {
+          product: { fieldId: "customfield_12037", allowedValues: ["Alpha", "Beta"], required: true },
+        },
+      }),
+      setSpace: () => {},
+      discoverSpace: async () => { throw new Error("should not call"); },
+    },
+  );
+  assert.equal(result.key, "ABC-9");
+  assert.deepEqual(calls[0].body.fields.customfield_12037, [{ value: "Alpha" }]);
+});
+
+test("createJiraTicket surfaces required-field error after rediscovery branch", async () => {
+  let jiraCalls = 0;
+  const jiraRequest = async () => {
+    jiraCalls++;
+    const err = new Error("400");
+    err.status = 400;
+    err.body = { errors: { customfield_12037: "Product is required." } };
+    throw err;
+  };
+  await assert.rejects(
+    createJiraTicket(
+      { summary: "x", description: "y", parent_epic_key: "ABC-1", issue_type: "Story" },
+      {
+        jiraRequest,
+        getJiraBaseUrl: () => "https://x.atlassian.net",
+        env: {},
+        getSpace: () => ({ teamId: "", fields: {} }),
+        setSpace: () => {},
+        discoverSpace: async () => ({
+          teamId: "", fields: {},
+          customFields: {
+            product: { fieldId: "customfield_12037", allowedValues: ["Alpha"], required: true },
+          },
+        }),
+      },
+    ),
+    /Missing required custom_fields.*"product".*Alpha/,
+  );
+  assert.equal(jiraCalls, 1);
+});
+
 test("parseRequiredFieldErrors extracts field ids", () => {
   const ids = parseRequiredFieldErrors({
     errors: {

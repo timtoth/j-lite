@@ -26,9 +26,11 @@ const CREATE_TOOL = {
     "inferred from the parent epic key (e.g. ABC-456 → space ABC). Built-in " +
     "fields (team, sprint, story points, fix versions) are auto-discovered " +
     "from the space's create screens. Org-specific select-list custom fields " +
-    "are passed via `custom_fields` as { fieldName: value } pairs — call " +
-    "`discover_jira_space` first to learn which fields and values a given " +
-    "space accepts.",
+    "are passed via `custom_fields` as { fieldName: value } pairs. " +
+    "IMPORTANT: spaces often have REQUIRED custom fields (e.g. Product). " +
+    "Call `discover_jira_space` first to learn which fields are required " +
+    "and what allowedValues they accept — entries with `required: true` " +
+    "must be supplied in `custom_fields` or creation will fail.",
   inputSchema: {
     type: "object",
     properties: {
