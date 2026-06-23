@@ -1,4 +1,4 @@
-# Ticket Control - Task Checklist
+# j-Lite - Task Checklist
 
 ## Architecture
 - **Ticket list (left column)**: Direct JIRA REST API calls (requires API token)

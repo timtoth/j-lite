@@ -1,7 +1,7 @@
 @echo off
-:: Registers a Windows Task Scheduler task to run ticket-control on login
+:: Registers a Windows Task Scheduler task to run j-Lite on login
 
-set TASK_NAME=TicketControl
+set TASK_NAME=jLite
 set APP_DIR=%~dp0
 set NODE_PATH=node
 
