@@ -21,7 +21,11 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      name: "jLite",
+      exe: "jLite.exe",
+      setupExe: "jLite-Setup.exe",
+    }),
     new MakerZIP({}, ["darwin"]),
     new MakerDMG({}),
     new MakerDeb({ options: { license: "MIT" } }),
