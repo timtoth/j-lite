@@ -30,6 +30,30 @@ function parseRequiredFieldErrors(body) {
   return Object.keys(errors);
 }
 
+function checkRequiredCustomFields(customFieldArgs, space, projectKey) {
+  const map = space.customFields || {};
+  const provided = new Set(
+    Object.keys(customFieldArgs ?? {}).map((k) => k.trim().toLowerCase()),
+  );
+  const missing = [];
+  for (const [name, def] of Object.entries(map)) {
+    if (def?.required !== true) continue;
+    if (provided.has(name)) continue;
+    const allowed = Array.isArray(def.allowedValues) ? def.allowedValues : [];
+    missing.push(
+      allowed.length > 0
+        ? `"${name}" (one of: ${allowed.join(", ")})`
+        : `"${name}"`,
+    );
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required custom_fields for space ${projectKey}: ${missing.join("; ")}. ` +
+      `Pass them in the custom_fields argument.`,
+    );
+  }
+}
+
 function applyCustomFields(fields, customFieldArgs, space, projectKey) {
   if (!customFieldArgs) return;
   const map = space.customFields || {};
@@ -102,6 +126,7 @@ async function createJiraTicket(args, deps) {
   }
 
   const ticketArgs = { summary, description, parent_epic_key, issue_type, custom_fields };
+  checkRequiredCustomFields(custom_fields, space, projectKey);
   const body = buildBody(ticketArgs, space, accountId, projectKey);
 
   try {
@@ -118,6 +143,7 @@ async function createJiraTicket(args, deps) {
       customFields: { ...(space.customFields || {}), ...(fresh.customFields || {}) },
     };
     setSpace(projectKey, merged);
+    checkRequiredCustomFields(custom_fields, merged, projectKey);
     const retryBody = buildBody(ticketArgs, merged, accountId, projectKey);
     const result = await jiraRequest("POST", "/rest/api/3/issue", retryBody);
     return { key: result.key, url: `${getJiraBaseUrl()}/browse/${result.key}` };

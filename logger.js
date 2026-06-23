@@ -8,6 +8,12 @@ function resolveLogPath() {
 
 const logStream = fs.createWriteStream(resolveLogPath(), { flags: "a" });
 
+// Under Electron (TC_CONFIG_DIR is set), the main process pipes this child's
+// stdout/stderr straight into app.log — so a console mirror would duplicate
+// every line. In standalone dev (`npm run dev:web`) we still want terminal
+// output, so mirror only when running outside Electron.
+const mirrorToConsole = !process.env.TC_CONFIG_DIR;
+
 function formatMessage(level, category, message) {
   return `[${new Date().toISOString()}] [${level}] [${category}] ${message}`;
 }
@@ -15,6 +21,7 @@ function formatMessage(level, category, message) {
 function write(level, category, message) {
   const formatted = formatMessage(level, category, message);
   logStream.write(formatted + "\n");
+  if (!mirrorToConsole) return;
   if (level === "ERROR") {
     console.error(formatted);
   } else {

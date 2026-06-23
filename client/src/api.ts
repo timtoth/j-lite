@@ -45,26 +45,40 @@ export async function fetchDescription(key: string): Promise<string> {
   return data.description;
 }
 
-export interface InstructResult {
-  response: string;
+export interface StreamInstructionRequest {
+  instruction: string;
+  cwd?: string | null;
+  sessionId?: string | null;
+  space?: string | null;
+}
+
+export interface StreamInstructionHandlers {
+  onDelta: (text: string) => void;
+  onError: (message: string) => void;
+}
+
+export interface StreamInstructionResult {
   sessionId: string | null;
 }
 
-export async function sendInstruction(
-  instruction: string,
-  cwd?: string,
-  sessionId?: string | null,
-  space?: string | null
-): Promise<InstructResult> {
-  const body: Record<string, unknown> = { instruction };
-  if (cwd) body.cwd = cwd;
-  if (sessionId) body.sessionId = sessionId;
-  if (space) body.space = space;
+export async function streamInstruction(
+  req: StreamInstructionRequest,
+  handlers: StreamInstructionHandlers,
+  signal: AbortSignal,
+): Promise<StreamInstructionResult> {
+  const body: Record<string, unknown> = { instruction: req.instruction };
+  if (req.cwd) body.cwd = req.cwd;
+  if (req.sessionId) body.sessionId = req.sessionId;
+  if (req.space) body.space = req.space;
 
-  const res = await apiFetch("/api/instruct", {
+  const res = await apiFetch("/api/instruct/stream", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!res.ok) {
@@ -73,16 +87,51 @@ export async function sendInstruction(
       const data = await res.json();
       message = data.error || message;
     } catch {
-      // response wasn't JSON — keep default message
+      // non-JSON error body — keep default
     }
     throw new Error(message);
   }
+  if (!res.body) throw new Error("Response has no body");
 
-  const data = await res.json();
-  return {
-    response: data.response ?? "",
-    sessionId: data.sessionId ?? null,
-  };
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let result: StreamInstructionResult | null = null;
+  let inBandError: string | null = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (value) buf += decoder.decode(value, { stream: !done });
+    let idx: number;
+    while ((idx = buf.indexOf("\n\n")) !== -1) {
+      const frame = buf.slice(0, idx);
+      buf = buf.slice(idx + 2);
+      const evMatch = /^event: (.*)$/m.exec(frame);
+      const dataMatch = /^data: (.*)$/m.exec(frame);
+      if (!evMatch || !dataMatch) continue;
+      const eventName = evMatch[1];
+      let data: any;
+      try {
+        data = JSON.parse(dataMatch[1]);
+      } catch {
+        continue;
+      }
+      if (eventName === "delta") {
+        handlers.onDelta(data.text);
+      } else if (eventName === "done") {
+        result = { sessionId: data.sessionId ?? null };
+      } else if (eventName === "error") {
+        const errorMsg = data.message || "Unknown error";
+        inBandError = errorMsg;
+        handlers.onError(errorMsg);
+      }
+    }
+    if (done) break;
+  }
+
+  if (inBandError) throw new Error(inBandError);
+  if (!result) throw new Error("Stream ended without a done event");
+  return result;
 }
 
 export async function browseFolder(): Promise<string> {

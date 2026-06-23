@@ -16,11 +16,20 @@ interface Props {
 export function ChatMessage({ message }: Props) {
   const classes = ["chat-message", `chat-message--${message.role}`];
   if (message.error) classes.push("chat-message--error");
+  const isEmptyAssistant =
+    message.role === "assistant" && !message.error && message.content === "";
+  if (isEmptyAssistant) {
+    classes.push("chat-message--thinking");
+  }
 
   return (
     <div className={classes.join(" ")}>
       <div className="chat-message-bubble">
-        {message.role === "assistant" && !message.error ? (
+        {isEmptyAssistant ? (
+          <>
+            <span className="spinner" /> Thinking&hellip;
+          </>
+        ) : message.role === "assistant" && !message.error ? (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             urlTransform={(url) =>
