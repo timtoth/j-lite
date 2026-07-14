@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
 import dotenv from "dotenv";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -9,15 +8,13 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import config from "../config.js";
+import { jiraRequest, getJiraBaseUrl } from "../lib/jira-client.js";
+import { createJiraTicket } from "./jira-create.js";
+import { discoverSpaceFields } from "../lib/jira-discovery.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
-
-const require = createRequire(import.meta.url);
-const config = require("../config");
-const { jiraRequest, getJiraBaseUrl } = require("../lib/jira-client.js");
-const { createJiraTicket } = require("./jira-create.js");
-const { discoverSpaceFields } = require("../lib/jira-discovery.js");
 
 const CREATE_TOOL = {
   name: "create_jira_ticket",

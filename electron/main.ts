@@ -3,6 +3,10 @@ import { spawn, ChildProcess } from "node:child_process";
 import * as path from "node:path";
 import * as http from "node:http";
 import * as fs from "node:fs";
+// A bare `require()` call is never seen by Rollup/Vite's bundler — only
+// `import` gets resolved and inlined — so this must be a static import or
+// the packaged app throws MODULE_NOT_FOUND (node_modules isn't shipped).
+import squirrelStartup from "electron-squirrel-startup";
 import { findFreePort } from "./free-port";
 import { buildServerSpawn } from "./spawn-args";
 import { registerMcpIfNeeded } from "./mcp-register";
@@ -12,6 +16,13 @@ import { IPC } from "./types";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
+
+// Squirrel.Windows launches the app with a --squirrel-* flag on
+// install/update/uninstall to create/remove shortcuts, then expects an
+// immediate quit.
+if (squirrelStartup) {
+  app.quit();
+}
 
 let serverChild: ChildProcess | null = null;
 let serverPort: number | null = null;

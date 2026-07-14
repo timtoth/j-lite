@@ -31,5 +31,6 @@ Thumbs.db
 
 # Electron
 out/
+.server-bundle/
 .vite-port
 electron-state.json
