@@ -28,8 +28,8 @@ const config: ForgeConfig = {
     }),
     new MakerZIP({}, ["darwin"]),
     new MakerDMG({}),
-    new MakerDeb({ options: { license: "MIT" } }),
-    new MakerRpm({ options: { license: "MIT" } }),
+    new MakerDeb({ options: { license: "MIT", bin: "jLite" } }),
+    new MakerRpm({ options: { license: "MIT", bin: "jLite" } }),
   ],
   plugins: [
     new VitePlugin({
