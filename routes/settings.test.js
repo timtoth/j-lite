@@ -369,3 +369,72 @@ test("PUT /api/settings/spaces/:key clears prior error field", async () => {
   const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
   assert.equal(onDisk.JIRA_SPACES.ABC.error, undefined);
 });
+
+test("POST /api/settings/discover?space=KEY preserves customFields across re-discovery", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {
+        XYZ: {
+          teamId: "",
+          fields: {},
+          customFields: { region: { fieldId: "customfield_20001", allowedValues: ["NA"] } },
+        },
+      },
+    }),
+  );
+  const discoveryMock = require("../lib/jira-discovery");
+  const origFields = discoveryMock.discoverSpaceFields;
+  discoveryMock.discoverSpaceFields = async () => ({
+    teamId: "", fields: { sprint: "customfield_10020" },
+  });
+  try {
+    const app = makeApp();
+    const res = await call(app, "POST", "/api/settings/discover?space=XYZ");
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.json.spaces.XYZ.customFields, {
+      region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+    });
+    const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+    assert.deepEqual(onDisk.JIRA_SPACES.XYZ.customFields, {
+      region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+    });
+  } finally {
+    discoveryMock.discoverSpaceFields = origFields;
+  }
+});
+
+test("POST /api/settings/discover?space=KEY does not resurrect an excluded custom field", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {
+        XYZ: { teamId: "", fields: {}, excludedCustomFields: ["project"] },
+      },
+    }),
+  );
+  const discoveryMock = require("../lib/jira-discovery");
+  const origFields = discoveryMock.discoverSpaceFields;
+  discoveryMock.discoverSpaceFields = async () => ({
+    teamId: "",
+    fields: {},
+    customFields: { project: { fieldId: "project", allowedValues: ["ABC Project"] } },
+  });
+  try {
+    const app = makeApp();
+    const res = await call(app, "POST", "/api/settings/discover?space=XYZ");
+    assert.equal(res.status, 200);
+    assert.equal(res.json.spaces.XYZ.customFields, undefined);
+    assert.deepEqual(res.json.spaces.XYZ.excludedCustomFields, ["project"]);
+  } finally {
+    discoveryMock.discoverSpaceFields = origFields;
+  }
+});

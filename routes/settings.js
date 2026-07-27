@@ -61,8 +61,7 @@ async function refreshSpace(spaceKey) {
   try {
     const fresh = await jiraDiscovery.discoverSpaceFields(jiraRequest, spaceKey);
     const merged = {
-      teamId: existing.teamId || fresh.teamId || "",
-      fields: { ...existing.fields, ...fresh.fields },
+      ...jiraDiscovery.mergeSpaceRecord(existing, fresh),
       discoveredAt: new Date().toISOString(),
     };
     config.setSpace(spaceKey, merged);
