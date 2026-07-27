@@ -159,4 +159,31 @@ function deleteSpace(key) {
   return true;
 }
 
-module.exports = { get, getAll, isConfigured, update, getSpace, setSpace, deleteSpace, KEYS, REQUIRED_KEYS };
+function excludeCustomField(spaceKey, fieldName) {
+  const space = getSpace(spaceKey);
+  if (!space) return null;
+  const name = fieldName.trim().toLowerCase();
+  const nextCustomFields = { ...(space.customFields || {}) };
+  delete nextCustomFields[name];
+  const nextExcluded = Array.from(new Set([...(space.excludedCustomFields || []), name]));
+  const next = { ...space, excludedCustomFields: nextExcluded };
+  if (Object.keys(nextCustomFields).length > 0) next.customFields = nextCustomFields;
+  else delete next.customFields;
+  return setSpace(spaceKey, next);
+}
+
+function restoreCustomField(spaceKey, fieldName) {
+  const space = getSpace(spaceKey);
+  if (!space) return null;
+  const name = fieldName.trim().toLowerCase();
+  const nextExcluded = (space.excludedCustomFields || []).filter((n) => n !== name);
+  const next = { ...space };
+  if (nextExcluded.length > 0) next.excludedCustomFields = nextExcluded;
+  else delete next.excludedCustomFields;
+  return setSpace(spaceKey, next);
+}
+
+module.exports = {
+  get, getAll, isConfigured, update, getSpace, setSpace, deleteSpace,
+  excludeCustomField, restoreCustomField, KEYS, REQUIRED_KEYS,
+};

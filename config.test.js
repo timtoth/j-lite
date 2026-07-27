@@ -140,3 +140,52 @@ test("isConfigured stays based on JIRA_BASE_URL/EMAIL/API_TOKEN only", () => {
   const config = require("./config");
   assert.equal(config.isConfigured(), true);
 });
+
+test("excludeCustomField moves a field from customFields to excludedCustomFields", () => {
+  const config = require("./config");
+  config.setSpace("XYZ", {
+    teamId: "",
+    fields: {},
+    customFields: {
+      project: { fieldId: "project", allowedValues: ["ABC Project"] },
+      region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+    },
+  });
+  const updated = config.excludeCustomField("XYZ", "Project");
+  assert.deepEqual(updated.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+  assert.deepEqual(updated.excludedCustomFields, ["project"]);
+  const onDisk = readConfig();
+  assert.deepEqual(onDisk.JIRA_SPACES.XYZ.excludedCustomFields, ["project"]);
+});
+
+test("excludeCustomField dedups on repeated calls", () => {
+  const config = require("./config");
+  config.setSpace("XYZ", {
+    teamId: "",
+    fields: {},
+    customFields: { project: { fieldId: "project", allowedValues: [] } },
+  });
+  config.excludeCustomField("XYZ", "project");
+  const updated = config.excludeCustomField("XYZ", "project");
+  assert.deepEqual(updated.excludedCustomFields, ["project"]);
+});
+
+test("excludeCustomField returns null for unknown space", () => {
+  const config = require("./config");
+  assert.equal(config.excludeCustomField("NOPE", "project"), null);
+});
+
+test("restoreCustomField removes a name from excludedCustomFields without restoring customFields", () => {
+  const config = require("./config");
+  config.setSpace("XYZ", { teamId: "", fields: {}, excludedCustomFields: ["project"] });
+  const updated = config.restoreCustomField("XYZ", "project");
+  assert.equal(updated.excludedCustomFields, undefined);
+  assert.equal(updated.customFields, undefined);
+});
+
+test("restoreCustomField returns null for unknown space", () => {
+  const config = require("./config");
+  assert.equal(config.restoreCustomField("NOPE", "project"), null);
+});
