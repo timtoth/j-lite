@@ -471,3 +471,87 @@ test("PUT /api/settings/spaces/:key preserves customFields and excludedCustomFie
   });
   assert.deepEqual(onDisk.JIRA_SPACES.ABC.excludedCustomFields, ["project"]);
 });
+
+test("DELETE /api/settings/spaces/:key/custom-fields/:name excludes the field", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {
+        ABC: {
+          teamId: "",
+          fields: {},
+          customFields: {
+            project: { fieldId: "project", allowedValues: ["ABC Project"] },
+            region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+          },
+        },
+      },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "DELETE", "/api/settings/spaces/ABC/custom-fields/project");
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.json.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+  assert.deepEqual(res.json.excludedCustomFields, ["project"]);
+  const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+  assert.deepEqual(onDisk.JIRA_SPACES.ABC.excludedCustomFields, ["project"]);
+});
+
+test("DELETE /api/settings/spaces/:key/custom-fields/:name returns 404 for unknown space", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {},
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "DELETE", "/api/settings/spaces/MISSING/custom-fields/project");
+  assert.equal(res.status, 404);
+});
+
+test("POST /api/settings/spaces/:key/custom-fields/:name/restore un-excludes the field", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {
+        ABC: { teamId: "", fields: {}, excludedCustomFields: ["project"] },
+      },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "POST", "/api/settings/spaces/ABC/custom-fields/project/restore");
+  assert.equal(res.status, 200);
+  assert.equal(res.json.excludedCustomFields, undefined);
+  const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+  assert.equal(onDisk.JIRA_SPACES.ABC.excludedCustomFields, undefined);
+});
+
+test("POST /api/settings/spaces/:key/custom-fields/:name/restore returns 404 for unknown space", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {},
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "POST", "/api/settings/spaces/MISSING/custom-fields/project/restore");
+  assert.equal(res.status, 404);
+});

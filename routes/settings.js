@@ -137,6 +137,32 @@ router.put("/api/settings/spaces/:key", (req, res) => {
   }
 });
 
+router.delete("/api/settings/spaces/:key/custom-fields/:name", (req, res) => {
+  const { key, name } = req.params;
+  try {
+    const updated = config.excludeCustomField(key, name);
+    if (!updated) return res.status(404).json({ error: `Unknown space: ${key}` });
+    logger.info("CONFIG", `Excluded custom field "${name}" from space ${key}`);
+    return res.json(updated);
+  } catch (err) {
+    logger.error("CONFIG", `Failed to exclude custom field "${name}" from space ${key}: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/api/settings/spaces/:key/custom-fields/:name/restore", (req, res) => {
+  const { key, name } = req.params;
+  try {
+    const updated = config.restoreCustomField(key, name);
+    if (!updated) return res.status(404).json({ error: `Unknown space: ${key}` });
+    logger.info("CONFIG", `Restored custom field "${name}" for space ${key}`);
+    return res.json(updated);
+  } catch (err) {
+    logger.error("CONFIG", `Failed to restore custom field "${name}" for space ${key}: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 function checkClaude() {
   return new Promise((resolve) => {
     let settled = false;
