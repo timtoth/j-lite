@@ -16,6 +16,7 @@ before(async () => {
 });
 
 beforeEach(() => {
+  delete require.cache[require.resolve("../config")];
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tc-mcp-"));
   savedEnv = process.env.TC_CONFIG_DIR;
   process.env.TC_CONFIG_DIR = tmpDir;
@@ -27,8 +28,20 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
+// config.js caches its state in memory and only reloads when config.json's
+// mtime changes (see refreshIfStale in ../config.js). On this filesystem,
+// mtimeMs resolution is coarser than the sub-millisecond gap between two
+// writeConfig() calls in adjacent tests, so back-to-back writes can land in
+// the same mtime bucket and config.js keeps serving stale in-memory state
+// from the previous test's tmpDir. Force a strictly increasing mtime on every
+// write so config.js's staleness check always fires.
+let lastConfigMtimeMs = 0;
 function writeConfig(obj) {
-  fs.writeFileSync(path.join(tmpDir, "config.json"), JSON.stringify(obj));
+  const file = path.join(tmpDir, "config.json");
+  fs.writeFileSync(file, JSON.stringify(obj));
+  lastConfigMtimeMs = Math.max(lastConfigMtimeMs + 1, Date.now());
+  const t = new Date(lastConfigMtimeMs);
+  fs.utimesSync(file, t, t);
 }
 
 function readConfig() {
