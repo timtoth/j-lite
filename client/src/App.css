@@ -1079,17 +1079,17 @@ body {
   font-weight: 500;
 }
 
-.space-accordion__chevron {
+.settings-chevron {
   font-size: 0.7rem;
   color: #a8b0b9;
   display: inline-block;
   transition: transform 0.22s ease;
 }
-.space-accordion__chevron.is-open {
+.settings-chevron.is-open {
   transform: rotate(90deg);
 }
 @media (prefers-reduced-motion: reduce) {
-  .space-accordion__chevron { transition: none; }
+  .settings-chevron { transition: none; }
 }
 
 .space-accordion__count {

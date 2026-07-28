@@ -121,7 +121,7 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
     <div className="space-accordion">
       <div className="space-accordion__header" onClick={() => setOpen(!open)}>
         <div className="space-accordion__title">
-          <span className={`space-accordion__chevron${open ? " is-open" : ""}`}>▶</span>
+          <span className={`settings-chevron${open ? " is-open" : ""}`}>▶</span>
           {spaceKey}
         </div>
         <div className="space-accordion__header-right">
