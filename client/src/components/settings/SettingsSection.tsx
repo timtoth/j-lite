@@ -12,12 +12,19 @@ export function SettingsSection({ title, defaultOpen, headerRight, children }: P
 
   return (
     <section className="settings-card">
-      <div className="settings-card__header" onClick={() => setOpen(!open)} style={{ cursor: "pointer" }}>
-        <h2 className="settings-card__title">
-          <span className={`settings-chevron${open ? " is-open" : ""}`}>▶</span>
-          {" "}
-          {title}
-        </h2>
+      <div className="settings-card__header">
+        <button
+          type="button"
+          className="settings-card__title-btn"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+        >
+          <h2 className="settings-card__title">
+            <span className={`settings-chevron${open ? " is-open" : ""}`}>▶</span>
+            {" "}
+            {title}
+          </h2>
+        </button>
         {headerRight && (
           <div onClick={(e) => e.stopPropagation()}>{headerRight}</div>
         )}

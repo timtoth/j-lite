@@ -12,7 +12,7 @@ interface TcApi {
   getAppVersion: () => Promise<string>;
   checkForUpdates: () => Promise<void>;
   applyUpdate: (status: UpdateStatus) => Promise<void>;
-  onUpdateStatus: (cb: (status: UpdateStatus) => void) => void;
+  onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void;
 }
 
 declare global {

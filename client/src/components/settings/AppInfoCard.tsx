@@ -4,7 +4,7 @@ import { UpdateStatus } from "../../global";
 export function AppInfoCard() {
   const [version, setVersion] = useState<string | null>(null);
   const [status, setStatus] = useState<UpdateStatus | null>(null);
-  const [supported, setSupported] = useState(false);
+  const [supported, setSupported] = useState(() => !!window.tc?.getAppVersion);
 
   useEffect(() => {
     if (!window.tc?.getAppVersion) {
@@ -13,7 +13,7 @@ export function AppInfoCard() {
     }
     setSupported(true);
     window.tc.getAppVersion().then(setVersion).catch(() => setVersion(null));
-    window.tc.onUpdateStatus?.(setStatus);
+    return window.tc.onUpdateStatus?.(setStatus);
   }, []);
 
   async function handleCheck() {
@@ -57,7 +57,7 @@ export function AppInfoCard() {
         type="button"
         className="settings-discover-btn"
         onClick={handleCheck}
-        disabled={checking}
+        disabled={checking || status?.state === "downloading"}
       >
         {checking ? "Checking…" : "Check for Updates"}
       </button>

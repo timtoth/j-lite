@@ -16,7 +16,9 @@ const api: TcApi = {
     return Promise.resolve();
   },
   onUpdateStatus: (cb: (status: UpdateStatus) => void) => {
-    ipcRenderer.on(IPC.UPDATE_STATUS, (_event, status: UpdateStatus) => cb(status));
+    const listener = (_event: unknown, status: UpdateStatus) => cb(status);
+    ipcRenderer.on(IPC.UPDATE_STATUS, listener);
+    return () => ipcRenderer.removeListener(IPC.UPDATE_STATUS, listener);
   },
 };
 

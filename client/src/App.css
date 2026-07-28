@@ -206,9 +206,11 @@ body {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.22s ease;
+  visibility: hidden;
 }
 .collapsible.is-open {
   grid-template-rows: 1fr;
+  visibility: visible;
 }
 .collapsible__inner {
   overflow: hidden;
@@ -766,6 +768,19 @@ body {
 
 .settings-card__header .settings-card__title {
   margin-bottom: 0;
+}
+
+.settings-card__title-btn {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .settings-row {
