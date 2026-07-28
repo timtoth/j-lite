@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import dotenv from "dotenv";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -11,7 +11,7 @@ import {
 import config from "../config.js";
 import { jiraRequest, getJiraBaseUrl } from "../lib/jira-client.js";
 import { createJiraTicket } from "./jira-create.js";
-import { discoverSpaceFields } from "../lib/jira-discovery.js";
+import jiraDiscovery from "../lib/jira-discovery.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
@@ -63,6 +63,23 @@ const DISCOVER_TOOL = {
   },
 };
 
+const REMOVE_CUSTOM_FIELD_TOOL = {
+  name: "remove_custom_field",
+  description:
+    "Permanently remove a custom field from a space's discovered configuration. " +
+    "Use this when a field was incorrectly discovered as a custom field (e.g. it is " +
+    "actually a JIRA system field) or is otherwise not needed. The field will not " +
+    "reappear on future discovery runs for this space.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      space_key:  { type: "string", description: "Project key, e.g. ABC, XYZ." },
+      field_name: { type: "string", description: "Custom field display name (case-insensitive), e.g. \"Project\"." },
+    },
+    required: ["space_key", "field_name"],
+  },
+};
+
 function formatError(err) {
   if (err.status === 401 || err.status === 403) return "JIRA auth failed; regenerate JIRA_API_TOKEN.";
   if (err.status === 404) return `Not found: ${err.body?.errorMessages?.[0] ?? err.message}`;
@@ -78,7 +95,7 @@ async function handleCreate(args) {
     env: config.getAll(),
     getSpace: (k) => config.getSpace(k),
     setSpace: (k, r) => config.setSpace(k, { ...r, discoveredAt: new Date().toISOString() }),
-    discoverSpace: (k) => discoverSpaceFields(jiraRequest, k),
+    discoverSpace: (k) => jiraDiscovery.discoverSpaceFields(jiraRequest, k),
   });
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 }
@@ -86,15 +103,24 @@ async function handleCreate(args) {
 async function handleDiscover(args) {
   const spaceKey = args?.space_key;
   if (!spaceKey) throw new Error("space_key is required");
-  const fresh = await discoverSpaceFields(jiraRequest, spaceKey);
+  const fresh = await jiraDiscovery.discoverSpaceFields(jiraRequest, spaceKey);
   const existing = config.getSpace(spaceKey) || { teamId: "", fields: {} };
   const merged = {
-    teamId: existing.teamId || fresh.teamId,
-    fields: { ...existing.fields, ...fresh.fields },
+    ...jiraDiscovery.mergeSpaceRecord(existing, fresh),
     discoveredAt: new Date().toISOString(),
   };
   config.setSpace(spaceKey, merged);
   return { content: [{ type: "text", text: JSON.stringify(merged) }] };
+}
+
+async function handleRemoveCustomField(args) {
+  const spaceKey = args?.space_key;
+  const fieldName = args?.field_name;
+  if (!spaceKey) throw new Error("space_key is required");
+  if (!fieldName) throw new Error("field_name is required");
+  const updated = config.excludeCustomField(spaceKey, fieldName);
+  if (!updated) throw new Error(`Unknown space: ${spaceKey}`);
+  return { content: [{ type: "text", text: JSON.stringify(updated) }] };
 }
 
 const server = new Server(
@@ -103,19 +129,28 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [CREATE_TOOL, DISCOVER_TOOL],
+  tools: [CREATE_TOOL, DISCOVER_TOOL, REMOVE_CUSTOM_FIELD_TOOL],
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     if (request.params.name === CREATE_TOOL.name) return await handleCreate(request.params.arguments);
     if (request.params.name === DISCOVER_TOOL.name) return await handleDiscover(request.params.arguments);
+    if (request.params.name === REMOVE_CUSTOM_FIELD_TOOL.name) return await handleRemoveCustomField(request.params.arguments);
     return { content: [{ type: "text", text: `Unknown tool: ${request.params.name}` }], isError: true };
   } catch (err) {
     return { content: [{ type: "text", text: formatError(err) }], isError: true };
   }
 });
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
-console.error("[create-jira-ticket] MCP server listening on stdio");
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("[create-jira-ticket] MCP server listening on stdio");
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
+
+export { handleCreate, handleDiscover, handleRemoveCustomField };
