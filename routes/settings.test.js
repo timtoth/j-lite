@@ -438,3 +438,36 @@ test("POST /api/settings/discover?space=KEY does not resurrect an excluded custo
     discoveryMock.discoverSpaceFields = origFields;
   }
 });
+
+test("PUT /api/settings/spaces/:key preserves customFields and excludedCustomFields", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {
+        ABC: {
+          teamId: "old-team",
+          fields: { team: "customfield_10001" },
+          customFields: { region: { fieldId: "customfield_20001", allowedValues: ["NA"] } },
+          excludedCustomFields: ["project"],
+        },
+      },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "PUT", "/api/settings/spaces/ABC", { teamId: "new-team-uuid" });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.teamId, "new-team-uuid");
+  assert.deepEqual(res.json.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+  assert.deepEqual(res.json.excludedCustomFields, ["project"]);
+  const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+  assert.deepEqual(onDisk.JIRA_SPACES.ABC.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+  assert.deepEqual(onDisk.JIRA_SPACES.ABC.excludedCustomFields, ["project"]);
+});

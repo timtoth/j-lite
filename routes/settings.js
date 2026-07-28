@@ -124,6 +124,8 @@ router.put("/api/settings/spaces/:key", (req, res) => {
     teamId: body.teamId,
     fields: { ...(existing.fields || {}) },
   };
+  if (existing.customFields) merged.customFields = existing.customFields;
+  if (existing.excludedCustomFields) merged.excludedCustomFields = existing.excludedCustomFields;
   if (existing.discoveredAt) merged.discoveredAt = existing.discoveredAt;
   // `error` is intentionally not copied — successful edit clears it.
   try {
