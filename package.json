@@ -1,7 +1,7 @@
 {
   "name": "ticket-control",
   "productName": "jLite",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "JIRA ticket viewer with Claude Code integration",
   "author": "Tim Toth",
   "license": "MIT",
