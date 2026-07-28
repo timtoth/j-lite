@@ -1234,6 +1234,54 @@ body {
   color: #a8b0b9;
 }
 
+.space-accordion__remove-field {
+  background: none;
+  border: none;
+  color: #8b94a3;
+  font-size: 0.85rem;
+  padding: 1px 4px;
+  margin-left: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.space-accordion__remove-field:hover:not(:disabled) {
+  color: #f5b7b1;
+  background: rgba(245, 183, 177, 0.1);
+}
+
+.space-accordion__remove-field:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.space-accordion__excluded-fields {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #3a3f47;
+}
+
+.space-accordion__restore-field {
+  background: transparent;
+  border: 1px solid #3a3f47;
+  color: #8b9cf7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.space-accordion__restore-field:hover:not(:disabled) {
+  background: rgba(139, 156, 247, 0.1);
+}
+
+.space-accordion__restore-field:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .space-accordion__edit-error {
   color: #f5b7b1;
   font-size: 0.78rem;
