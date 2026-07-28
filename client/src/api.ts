@@ -237,6 +237,42 @@ export async function deleteJiraSpace(spaceKey: string): Promise<void> {
   }
 }
 
+export async function removeCustomField(spaceKey: string, fieldName: string): Promise<JiraSpace> {
+  const res = await apiFetch(
+    `/api/settings/spaces/${encodeURIComponent(spaceKey)}/custom-fields/${encodeURIComponent(fieldName)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    let message = "Failed to remove custom field";
+    try {
+      const data = await res.json();
+      message = data.error || message;
+    } catch {
+      // response wasn't JSON — keep default message
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+export async function restoreCustomField(spaceKey: string, fieldName: string): Promise<JiraSpace> {
+  const res = await apiFetch(
+    `/api/settings/spaces/${encodeURIComponent(spaceKey)}/custom-fields/${encodeURIComponent(fieldName)}/restore`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    let message = "Failed to restore custom field";
+    try {
+      const data = await res.json();
+      message = data.error || message;
+    } catch {
+      // response wasn't JSON — keep default message
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
 export async function fetchJiraProjects(): Promise<JiraProjectsResponse> {
   const res = await apiFetch("/api/jira/projects");
   if (!res.ok) {
