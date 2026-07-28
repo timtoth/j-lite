@@ -61,8 +61,7 @@ async function refreshSpace(spaceKey) {
   try {
     const fresh = await jiraDiscovery.discoverSpaceFields(jiraRequest, spaceKey);
     const merged = {
-      teamId: existing.teamId || fresh.teamId || "",
-      fields: { ...existing.fields, ...fresh.fields },
+      ...jiraDiscovery.mergeSpaceRecord(existing, fresh),
       discoveredAt: new Date().toISOString(),
     };
     config.setSpace(spaceKey, merged);
@@ -125,6 +124,8 @@ router.put("/api/settings/spaces/:key", (req, res) => {
     teamId: body.teamId,
     fields: { ...(existing.fields || {}) },
   };
+  if (existing.customFields) merged.customFields = existing.customFields;
+  if (existing.excludedCustomFields) merged.excludedCustomFields = existing.excludedCustomFields;
   if (existing.discoveredAt) merged.discoveredAt = existing.discoveredAt;
   // `error` is intentionally not copied — successful edit clears it.
   try {
@@ -132,6 +133,32 @@ router.put("/api/settings/spaces/:key", (req, res) => {
     return res.json(merged);
   } catch (err) {
     logger.error("CONFIG", `Failed to update space ${key}: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete("/api/settings/spaces/:key/custom-fields/:name", (req, res) => {
+  const { key, name } = req.params;
+  try {
+    const updated = config.excludeCustomField(key, name);
+    if (!updated) return res.status(404).json({ error: `Unknown space: ${key}` });
+    logger.info("CONFIG", `Excluded custom field "${name}" from space ${key}`);
+    return res.json(updated);
+  } catch (err) {
+    logger.error("CONFIG", `Failed to exclude custom field "${name}" from space ${key}: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/api/settings/spaces/:key/custom-fields/:name/restore", (req, res) => {
+  const { key, name } = req.params;
+  try {
+    const updated = config.restoreCustomField(key, name);
+    if (!updated) return res.status(404).json({ error: `Unknown space: ${key}` });
+    logger.info("CONFIG", `Restored custom field "${name}" for space ${key}`);
+    return res.json(updated);
+  } catch (err) {
+    logger.error("CONFIG", `Failed to restore custom field "${name}" for space ${key}: ${err.message}`);
     return res.status(500).json({ error: err.message });
   }
 });

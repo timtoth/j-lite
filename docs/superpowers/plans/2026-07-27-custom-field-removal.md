@@ -536,6 +536,99 @@ git commit -m "fix(settings): preserve and filter customFields across space re-d
 
 ---
 
+## Task 4b: Fix `PUT /api/settings/spaces/:key` dropping `customFields`/`excludedCustomFields`
+
+**Files:**
+- Modify: `C:\GHSource\ticket-control\routes\settings.js`
+- Modify: `C:\GHSource\ticket-control\routes\settings.test.js`
+
+**Why this works:** This endpoint saves a user-edited `teamId` (the "Edit" button on a space's Team ID row in `SpaceAccordion`). It builds its persisted record from only `body.teamId` and `existing.fields`, silently dropping `customFields` and `excludedCustomFields` on every save — a pre-existing bug discovered while reviewing Task 4, structurally identical to the bug Task 4 just fixed in `refreshSpace`. Left unfixed, saving a Team ID edit after removing a custom field (Task 3/7/9's whole feature) would silently undo the exclusion, since the next discovery would see no `excludedCustomFields` and happily rediscover the removed field. This task closes that gap by carrying both fields through unchanged, the same way `discoveredAt` is already carried through on line 127.
+
+**Interfaces:**
+- Consumes: nothing new — this is a same-file addition using the space record fields already in scope (`existing.customFields`, `existing.excludedCustomFields`). Does not need `mergeSpaceRecord` since there's no "fresh" discovery result to merge here — it's a pure preserve-on-write, not a merge.
+
+- [ ] **Step 4b.1: Add a failing test**
+
+Edit `C:\GHSource\ticket-control\routes\settings.test.js`. Append:
+
+```javascript
+test("PUT /api/settings/spaces/:key preserves customFields and excludedCustomFields", async () => {
+  fs.writeFileSync(
+    path.join(tmpDir, "config.json"),
+    JSON.stringify({
+      JIRA_BASE_URL: "https://x.atlassian.net",
+      JIRA_EMAIL: "me@x.com",
+      JIRA_API_TOKEN: "tok",
+      JIRA_ACCOUNT_ID: "",
+      JIRA_SPACES: {
+        ABC: {
+          teamId: "old-team",
+          fields: { team: "customfield_10001" },
+          customFields: { region: { fieldId: "customfield_20001", allowedValues: ["NA"] } },
+          excludedCustomFields: ["project"],
+        },
+      },
+    }),
+  );
+  const app = makeApp();
+  const res = await call(app, "PUT", "/api/settings/spaces/ABC", { teamId: "new-team-uuid" });
+  assert.equal(res.status, 200);
+  assert.equal(res.json.teamId, "new-team-uuid");
+  assert.deepEqual(res.json.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+  assert.deepEqual(res.json.excludedCustomFields, ["project"]);
+  const onDisk = JSON.parse(fs.readFileSync(path.join(tmpDir, "config.json"), "utf8"));
+  assert.deepEqual(onDisk.JIRA_SPACES.ABC.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+  assert.deepEqual(onDisk.JIRA_SPACES.ABC.excludedCustomFields, ["project"]);
+});
+```
+
+- [ ] **Step 4b.2: Run test to verify it fails**
+
+Run: `node --test routes/settings.test.js`
+Expected: FAIL — `res.json.customFields` and `res.json.excludedCustomFields` are both `undefined` under the current implementation, which only copies `teamId` and `fields`.
+
+- [ ] **Step 4b.3: Fix the handler**
+
+Edit `C:\GHSource\ticket-control\routes\settings.js`. Find:
+
+```javascript
+  const merged = {
+    teamId: body.teamId,
+    fields: { ...(existing.fields || {}) },
+  };
+  if (existing.discoveredAt) merged.discoveredAt = existing.discoveredAt;
+```
+
+Replace with:
+
+```javascript
+  const merged = {
+    teamId: body.teamId,
+    fields: { ...(existing.fields || {}) },
+  };
+  if (existing.customFields) merged.customFields = existing.customFields;
+  if (existing.excludedCustomFields) merged.excludedCustomFields = existing.excludedCustomFields;
+  if (existing.discoveredAt) merged.discoveredAt = existing.discoveredAt;
+```
+
+- [ ] **Step 4b.4: Run test to verify it passes**
+
+Run: `node --test routes/settings.test.js`
+Expected: PASS, all tests in the file, including the pre-existing `PUT /api/settings/spaces/:key` tests (updates teamId and preserves fields; 404 for unknown space; rejects non-string teamId; clears prior error field).
+
+- [ ] **Step 4b.5: Commit**
+
+```bash
+git add routes/settings.js routes/settings.test.js
+git commit -m "fix(settings): preserve customFields/excludedCustomFields on teamId edit"
+```
+
+---
+
 ## Task 5: Fix the discovery merge bug in `mcp/jira-create.js`'s retry path
 
 **Files:**

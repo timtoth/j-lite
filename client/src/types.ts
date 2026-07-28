@@ -44,6 +44,7 @@ export interface JiraSpace {
   teamId: string;
   fields: JiraSpaceFields;
   customFields?: Record<string, JiraCustomField>;
+  excludedCustomFields?: string[];
   discoveredAt?: string;
   error?: string;
 }

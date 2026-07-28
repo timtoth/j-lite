@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { JiraSpace } from "../../types";
-import { updateJiraSpace, deleteJiraSpace } from "../../api";
+import { updateJiraSpace, deleteJiraSpace, removeCustomField, restoreCustomField } from "../../api";
 
 interface Props {
   spaceKey: string;
@@ -27,6 +27,35 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removingField, setRemovingField] = useState<string | null>(null);
+  const [restoringField, setRestoringField] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  async function handleRemoveCustomField(name: string) {
+    setRemovingField(name);
+    setFieldError(null);
+    try {
+      const next = await removeCustomField(spaceKey, name);
+      onUpdate(spaceKey, next);
+    } catch (err) {
+      setFieldError(err instanceof Error ? err.message : "Remove failed");
+    } finally {
+      setRemovingField(null);
+    }
+  }
+
+  async function handleRestoreCustomField(name: string) {
+    setRestoringField(name);
+    setFieldError(null);
+    try {
+      const next = await restoreCustomField(spaceKey, name);
+      onUpdate(spaceKey, next);
+    } catch (err) {
+      setFieldError(err instanceof Error ? err.message : "Restore failed");
+    } finally {
+      setRestoringField(null);
+    }
+  }
 
   function requestRemove(e: React.MouseEvent) {
     e.stopPropagation();
@@ -183,14 +212,45 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
               {Object.entries(space.customFields).map(([name, def]) => (
                 <div className="space-accordion__field-row" key={name}>
                   <span>{name}</span>
-                  <strong title={def.allowedValues.join(", ") || "(no values)"}>
-                    {def.fieldId} ({def.allowedValues.length}{" "}
-                    value{def.allowedValues.length === 1 ? "" : "s"})
-                  </strong>
+                  <span>
+                    <strong title={def.allowedValues.join(", ") || "(no values)"}>
+                      {def.fieldId} ({def.allowedValues.length}{" "}
+                      value{def.allowedValues.length === 1 ? "" : "s"})
+                    </strong>
+                    <button
+                      type="button"
+                      className="space-accordion__remove-field"
+                      onClick={() => handleRemoveCustomField(name)}
+                      disabled={removingField === name}
+                      aria-label={`Remove custom field ${name}`}
+                      title="Remove custom field"
+                    >
+                      🗑
+                    </button>
+                  </span>
                 </div>
               ))}
             </div>
           )}
+          {space.excludedCustomFields && space.excludedCustomFields.length > 0 && (
+            <div className="space-accordion__excluded-fields">
+              <div className="space-accordion__custom-fields-title">Excluded fields</div>
+              {space.excludedCustomFields.map((name) => (
+                <div className="space-accordion__field-row" key={name}>
+                  <span>{name}</span>
+                  <button
+                    type="button"
+                    className="space-accordion__restore-field"
+                    onClick={() => handleRestoreCustomField(name)}
+                    disabled={restoringField === name}
+                  >
+                    {restoringField === name ? "Restoring…" : "Restore"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {fieldError && <div className="space-accordion__edit-error">{fieldError}</div>}
           {space.error && (
             <div className="settings-error" style={{ marginTop: 8 }}>
               {space.error}
