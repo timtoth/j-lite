@@ -22,9 +22,7 @@ export function JiraUserCard({ values, patch, onChange }: Props) {
       : `•••• ${values.JIRA_API_TOKEN.last4} (leave blank to keep)`;
 
   return (
-    <section className="settings-card">
-      <h2 className="settings-card__title">JIRA User</h2>
-
+    <>
       <label className="settings-field">
         <span className="settings-field__label">Base URL</span>
         <input
@@ -68,6 +66,6 @@ export function JiraUserCard({ values, patch, onChange }: Props) {
           . Stored locally; never sent anywhere except your JIRA instance.
         </span>
       </label>
-    </section>
+    </>
   );
 }

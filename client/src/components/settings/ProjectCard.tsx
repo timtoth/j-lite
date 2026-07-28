@@ -9,9 +9,7 @@ interface Props {
 
 export function ProjectCard({ status, folderPath, onFolderChange }: Props) {
   return (
-    <section className="settings-card">
-      <h2 className="settings-card__title">Project</h2>
-
+    <>
       <div className="settings-row">
         <span className="settings-row__label">Claude CLI</span>
         <span className="settings-row__value">
@@ -39,6 +37,6 @@ export function ProjectCard({ status, folderPath, onFolderChange }: Props) {
         The working directory Claude uses when running your instructions. Pick the
         repo or project folder you want it to act on.
       </p>
-    </section>
+    </>
   );
 }
