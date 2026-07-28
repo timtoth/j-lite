@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, Menu, dialog, ipcMain, shell, autoUpdater } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import * as path from "node:path";
 import * as http from "node:http";
@@ -12,7 +12,8 @@ import { buildServerSpawn } from "./spawn-args";
 import { registerMcpIfNeeded } from "./mcp-register";
 import { serverEntry, mcpEntry, configDir, isDev } from "./paths";
 import { migrateUserData } from "./migrate-userdata.impl.js";
-import { IPC } from "./types";
+import { IPC, UpdateStatus } from "./types";
+import { windowsFeedUrl, checkGithubLatestRelease } from "./update-checker";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -29,6 +30,12 @@ let serverPort: number | null = null;
 let mainWindow: BrowserWindow | null = null;
 let logStream: fs.WriteStream | null = null;
 
+const UPDATE_REPO = "timtoth/j-lite";
+
+function pushUpdateStatus(status: UpdateStatus): void {
+  mainWindow?.webContents.send(IPC.UPDATE_STATUS, status);
+}
+
 const lock = app.requestSingleInstanceLock();
 if (!lock) {
   app.quit();
@@ -40,6 +47,18 @@ app.on("second-instance", () => {
     mainWindow.focus();
   }
 });
+
+if (process.platform === "win32") {
+  autoUpdater.on("checking-for-update", () => pushUpdateStatus({ state: "checking" }));
+  autoUpdater.on("update-not-available", () => pushUpdateStatus({ state: "up-to-date" }));
+  autoUpdater.on("update-available", () => pushUpdateStatus({ state: "downloading" }));
+  autoUpdater.on("update-downloaded", () =>
+    pushUpdateStatus({ state: "ready", action: "restart" })
+  );
+  autoUpdater.on("error", (err) =>
+    pushUpdateStatus({ state: "error", message: err.message })
+  );
+}
 
 async function waitForServer(port: number, timeoutMs = 10000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -202,6 +221,30 @@ ipcMain.handle(IPC.GET_SERVER_PORT, () => {
   return serverPort ?? 0;
 });
 
+ipcMain.handle(IPC.GET_APP_VERSION, () => {
+  return app.getVersion();
+});
+
+ipcMain.handle(IPC.CHECK_FOR_UPDATES, async () => {
+  if (process.platform === "win32") {
+    autoUpdater.checkForUpdates();
+    return;
+  }
+  pushUpdateStatus({ state: "checking" });
+  const result = await checkGithubLatestRelease(UPDATE_REPO, app.getVersion(), fetch);
+  pushUpdateStatus(result as UpdateStatus);
+});
+
+ipcMain.handle(IPC.RESTART_TO_UPDATE, () => {
+  if (process.platform === "win32") {
+    autoUpdater.quitAndInstall();
+  }
+});
+
+ipcMain.handle(IPC.OPEN_EXTERNAL, (_event, url: string) => {
+  shell.openExternal(url);
+});
+
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
@@ -222,6 +265,10 @@ app.whenReady().then(async () => {
     }
   } catch (err) {
     console.error("[j-Lite] userData migration failed:", err);
+  }
+
+  if (process.platform === "win32") {
+    autoUpdater.setFeedURL({ url: windowsFeedUrl(UPDATE_REPO, app.getVersion()) });
   }
 
   try {
