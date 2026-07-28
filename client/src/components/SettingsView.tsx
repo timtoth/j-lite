@@ -4,11 +4,19 @@ import { getSettings, updateSettings, getSettingsStatus } from "../api";
 import { ProjectCard } from "./settings/ProjectCard";
 import { JiraUserCard } from "./settings/JiraUserCard";
 import { JiraProjectCard } from "./settings/JiraProjectCard";
+import { AppInfoCard } from "./settings/AppInfoCard";
+import { SettingsSection } from "./settings/SettingsSection";
 
 const FOLDER_STORAGE_KEY = "tc_folderPath";
 
 interface Props {
   onClose: () => void;
+}
+
+interface DiscoverButtonState {
+  discovering: boolean;
+  canDiscover: boolean;
+  onClick: () => void;
 }
 
 export function SettingsView({ onClose }: Props) {
@@ -20,6 +28,7 @@ export function SettingsView({ onClose }: Props) {
   const [folderPath, setFolderPath] = useState(
     () => localStorage.getItem(FOLDER_STORAGE_KEY) || "",
   );
+  const [discoverButton, setDiscoverButton] = useState<DiscoverButtonState | null>(null);
 
   useEffect(() => {
     getSettings().then(setValues).catch(() => setValues(null));
@@ -60,22 +69,51 @@ export function SettingsView({ onClose }: Props) {
       </div>
 
       <div className="settings-scroll">
-        <ProjectCard
-          status={status}
-          folderPath={folderPath}
-          onFolderChange={handleFolderChange}
-        />
+        <SettingsSection title="App Info" defaultOpen={true}>
+          <AppInfoCard />
+        </SettingsSection>
+
+        <SettingsSection title="Project" defaultOpen={false}>
+          <ProjectCard
+            status={status}
+            folderPath={folderPath}
+            onFolderChange={handleFolderChange}
+          />
+        </SettingsSection>
+
         {values && (
           <>
-            <JiraUserCard values={values} patch={patch} onChange={setPatch} />
-            <JiraProjectCard
-              values={values}
-              patch={patch}
-              onChange={setPatch}
-              onValuesChange={setValues}
-              status={status}
-              dirty={dirty}
-            />
+            <SettingsSection title="JIRA User" defaultOpen={false}>
+              <JiraUserCard values={values} patch={patch} onChange={setPatch} />
+            </SettingsSection>
+
+            <SettingsSection
+              title="JIRA Project"
+              defaultOpen={false}
+              headerRight={
+                discoverButton && (
+                  <button
+                    type="button"
+                    className="settings-discover-btn"
+                    onClick={discoverButton.onClick}
+                    disabled={discoverButton.discovering || !discoverButton.canDiscover}
+                    title={discoverButton.canDiscover ? undefined : "Save valid JIRA credentials first"}
+                  >
+                    {discoverButton.discovering ? "Discovering…" : "Discover from JIRA"}
+                  </button>
+                )
+              }
+            >
+              <JiraProjectCard
+                values={values}
+                patch={patch}
+                onChange={setPatch}
+                onValuesChange={setValues}
+                status={status}
+                dirty={dirty}
+                onDiscoverButtonReady={setDiscoverButton}
+              />
+            </SettingsSection>
           </>
         )}
         {!values && <div className="empty-state">Loading settings…</div>}

@@ -49,14 +49,16 @@ The packaged Electron app loads the renderer with `BrowserWindow.loadFile()` str
 When run as the desktop app (`npm start` / installed build), an Electron main process wraps the existing stack:
 
 - **Main** (`electron/main.ts`) creates the `BrowserWindow`, spawns `node server.js` as a child on a random localhost port, owns the native folder-picker dialog, registers the bundled MCP with the user's `claude` CLI on first launch, and tears the child down on quit.
-- **Preload** (`electron/preload.ts`) exposes a tiny `window.tc` API to the renderer (`pickFolder`, `getServerPort`).
+- **Preload** (`electron/preload.ts`) exposes a tiny `window.tc` API to the renderer (`pickFolder`, `getServerPort`, `getAppVersion`, `checkForUpdates`, `applyUpdate`, `onUpdateStatus`).
 - **Server child** is the unchanged `server.js`, launched with `cwd: app.getPath('userData')` and env vars `PORT=<random>` and `TC_CONFIG_DIR=<userData>`. `config.js` and `logger.js` honor `TC_CONFIG_DIR` so `config.json` and `app.log` live next to each other in `userData`.
 
-Pure helpers in `electron/` (`paths.impl.js`, `free-port.impl.js`, `spawn-args.impl.js`, `mcp-register.impl.js`) are kept in plain CommonJS so they can be unit-tested via `node --test` without an Electron runtime. The `.ts` files in the same folder are thin re-exports for type safety in `main.ts` and `preload.ts`. The `.impl.js` suffix is load-bearing: `vite.main.config.ts` tells Rollup's CommonJS plugin to process files matching `/\.impl\.js$/` so named exports survive bundling.
+Pure helpers in `electron/` (`paths.impl.js`, `free-port.impl.js`, `spawn-args.impl.js`, `mcp-register.impl.js`, `update-checker.impl.js`) are kept in plain CommonJS so they can be unit-tested via `node --test` without an Electron runtime. The `.ts` files in the same folder are thin re-exports for type safety in `main.ts` and `preload.ts`. The `.impl.js` suffix is load-bearing: `vite.main.config.ts` tells Rollup's CommonJS plugin to process files matching `/\.impl\.js$/` so named exports survive bundling.
 
 The `extraResource` list in `forge.config.ts` ships the existing CommonJS server tree (`server.js`, `routes/`, `lib/`, `jira.js`, `config.js`, `logger.js`, `mcp/`) into `process.resourcesPath` so the spawned child can find them.
 
 `/api/browse-folder` no longer exists — the renderer calls `window.tc.pickFolder()` instead.
+
+Update checking is on-demand only — there is no background polling. On Windows, `checkForUpdates` drives Electron's `autoUpdater` pointed at `update.electronjs.org`, giving a real download-and-restart-to-update flow. On macOS/Linux, it instead polls the GitHub Releases API directly and, if a newer version exists, opens the release page in the browser; there is no real Squirrel.Mac auto-update since this repo does no code-signing.
 
 ## Setup notes
 

@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { Settings, SettingsPatch, DiscoveryResult, SettingsStatus, JiraSpace } from "../../types";
 import { discoverJiraIds } from "../../api";
 import { SpaceAccordion } from "./SpaceAccordion";
@@ -11,14 +11,23 @@ interface Props {
   onValuesChange: (next: Settings) => void;
   status: SettingsStatus | null;
   dirty: boolean;
+  onDiscoverButtonReady?: (button: { discovering: boolean; canDiscover: boolean; onClick: () => void }) => void;
 }
 
 export function JiraProjectCard({
-  values, patch, onChange, onValuesChange, status, dirty,
+  values, patch, onChange, onValuesChange, status, dirty, onDiscoverButtonReady,
 }: Props) {
   const [discovering, setDiscovering] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const canDiscover = !!status?.jira.ok;
+
+  useEffect(() => {
+    onDiscoverButtonReady?.({
+      discovering,
+      canDiscover,
+      onClick: () => { runDiscovery(); },
+    });
+  }, [discovering, canDiscover, values, patch]);
 
   async function runDiscovery(spaceKey?: string): Promise<DiscoveryResult | null> {
     setDiscovering(true);
@@ -59,20 +68,7 @@ export function JiraProjectCard({
   const spaces: Record<string, JiraSpace> = values.JIRA_SPACES ?? {};
 
   return (
-    <section className="settings-card">
-      <div className="settings-card__header">
-        <h2 className="settings-card__title">JIRA Project</h2>
-        <button
-          type="button"
-          className="settings-discover-btn"
-          onClick={() => runDiscovery()}
-          disabled={discovering || !canDiscover}
-          title={canDiscover ? undefined : "Save valid JIRA credentials first"}
-        >
-          {discovering ? "Discovering…" : "Discover from JIRA"}
-        </button>
-      </div>
-
+    <>
       {status?.configured && status.jira.ok && !dirty && (
         <div className="settings-success">Setup Complete, start using the app!</div>
       )}
@@ -119,6 +115,6 @@ export function JiraProjectCard({
         onAdd={async (key) => { await runDiscovery(key); }}
         disabled={!canDiscover}
       />
-    </section>
+    </>
   );
 }
