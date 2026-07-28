@@ -327,3 +327,72 @@ test("parseRequiredFieldErrors returns empty when no errors", () => {
   assert.deepEqual(parseRequiredFieldErrors({ errors: {} }), []);
   assert.deepEqual(parseRequiredFieldErrors(null), []);
 });
+
+test("createJiraTicket retry preserves existing customFields not returned by fresh discovery", async () => {
+  const setCalls = [];
+  let attempt = 0;
+  const jiraRequest = async () => {
+    attempt++;
+    if (attempt === 1) {
+      const err = new Error("400");
+      err.status = 400;
+      err.body = { errors: { customfield_10020: "Sprint is required." } };
+      throw err;
+    }
+    return { key: "ABC-2" };
+  };
+  await createJiraTicket(
+    { summary: "x", description: "y", parent_epic_key: "ABC-1", issue_type: "Story" },
+    {
+      jiraRequest,
+      getJiraBaseUrl: () => "https://x.atlassian.net",
+      env: { JIRA_ACCOUNT_ID: "acct" },
+      getSpace: () => ({
+        teamId: "",
+        fields: {},
+        customFields: { region: { fieldId: "customfield_20001", allowedValues: ["NA"] } },
+      }),
+      setSpace: (k, r) => setCalls.push({ k, r }),
+      discoverSpace: async () => ({ teamId: "", fields: { sprint: "customfield_10020" } }),
+    },
+  );
+  assert.deepEqual(setCalls[0].r.customFields, {
+    region: { fieldId: "customfield_20001", allowedValues: ["NA"] },
+  });
+});
+
+test("createJiraTicket retry does not resurrect an excluded custom field", async () => {
+  const setCalls = [];
+  let attempt = 0;
+  const jiraRequest = async () => {
+    attempt++;
+    if (attempt === 1) {
+      const err = new Error("400");
+      err.status = 400;
+      err.body = { errors: { customfield_10020: "Sprint is required." } };
+      throw err;
+    }
+    return { key: "ABC-2" };
+  };
+  await createJiraTicket(
+    { summary: "x", description: "y", parent_epic_key: "ABC-1", issue_type: "Story" },
+    {
+      jiraRequest,
+      getJiraBaseUrl: () => "https://x.atlassian.net",
+      env: { JIRA_ACCOUNT_ID: "acct" },
+      getSpace: () => ({
+        teamId: "",
+        fields: {},
+        excludedCustomFields: ["project"],
+      }),
+      setSpace: (k, r) => setCalls.push({ k, r }),
+      discoverSpace: async () => ({
+        teamId: "",
+        fields: { sprint: "customfield_10020" },
+        customFields: { project: { fieldId: "project", allowedValues: ["ABC Project"] } },
+      }),
+    },
+  );
+  assert.equal(setCalls[0].r.customFields, undefined);
+  assert.deepEqual(setCalls[0].r.excludedCustomFields, ["project"]);
+});

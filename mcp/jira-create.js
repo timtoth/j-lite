@@ -1,3 +1,5 @@
+const { mergeSpaceRecord } = require("../lib/jira-discovery");
+
 function wrapDescriptionAsAdf(text) {
   const value = text ?? "";
   const trimmed = value.trim();
@@ -137,11 +139,7 @@ async function createJiraTicket(args, deps) {
     const missingIds = parseRequiredFieldErrors(err.body);
     if (missingIds.length === 0) throw err;
     const fresh = await discoverSpace(projectKey);
-    const merged = {
-      teamId: space.teamId || fresh.teamId,
-      fields: { ...space.fields, ...fresh.fields },
-      customFields: { ...(space.customFields || {}), ...(fresh.customFields || {}) },
-    };
+    const merged = mergeSpaceRecord(space, fresh);
     setSpace(projectKey, merged);
     checkRequiredCustomFields(custom_fields, merged, projectKey);
     const retryBody = buildBody(ticketArgs, merged, accountId, projectKey);
