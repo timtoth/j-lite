@@ -142,3 +142,37 @@ test("handleRemoveCustomField throws for unknown space", async () => {
     /Unknown space: NOPE/,
   );
 });
+
+test("handleRemoveCustomField throws a clean error for a non-string field_name instead of a raw TypeError", async () => {
+  writeConfig({
+    JIRA_BASE_URL: "https://x.atlassian.net",
+    JIRA_EMAIL: "me@x.com",
+    JIRA_API_TOKEN: "tok",
+    JIRA_ACCOUNT_ID: "",
+    JIRA_SPACES: {
+      XYZ: {
+        teamId: "",
+        fields: {},
+        customFields: { project: { fieldId: "project", allowedValues: ["ABC Project"] } },
+      },
+    },
+  });
+  await assert.rejects(
+    handleRemoveCustomField({ space_key: "XYZ", field_name: 42 }),
+    /field_name is required/,
+  );
+});
+
+test("handleRemoveCustomField throws a clean error for a non-string space_key", async () => {
+  writeConfig({
+    JIRA_BASE_URL: "https://x.atlassian.net",
+    JIRA_EMAIL: "me@x.com",
+    JIRA_API_TOKEN: "tok",
+    JIRA_ACCOUNT_ID: "",
+    JIRA_SPACES: {},
+  });
+  await assert.rejects(
+    handleRemoveCustomField({ space_key: 42, field_name: "project" }),
+    /space_key is required/,
+  );
+});

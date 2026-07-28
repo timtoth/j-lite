@@ -189,3 +189,21 @@ test("restoreCustomField returns null for unknown space", () => {
   const config = require("./config");
   assert.equal(config.restoreCustomField("NOPE", "project"), null);
 });
+
+test("excludeCustomField returns null for a whitespace-only field name and does not persist it", () => {
+  const config = require("./config");
+  config.setSpace("XYZ", { teamId: "", fields: {} });
+  const updated = config.excludeCustomField("XYZ", "   ");
+  assert.equal(updated, null);
+  const onDisk = readConfig();
+  assert.equal(onDisk.JIRA_SPACES.XYZ.excludedCustomFields, undefined);
+});
+
+test("restoreCustomField returns null for a whitespace-only field name and does not persist it", () => {
+  const config = require("./config");
+  config.setSpace("XYZ", { teamId: "", fields: {}, excludedCustomFields: ["project"] });
+  const updated = config.restoreCustomField("XYZ", "   ");
+  assert.equal(updated, null);
+  const onDisk = readConfig();
+  assert.deepEqual(onDisk.JIRA_SPACES.XYZ.excludedCustomFields, ["project"]);
+});

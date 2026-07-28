@@ -163,6 +163,7 @@ function excludeCustomField(spaceKey, fieldName) {
   const space = getSpace(spaceKey);
   if (!space) return null;
   const name = fieldName.trim().toLowerCase();
+  if (!name) return null;
   const nextCustomFields = { ...(space.customFields || {}) };
   delete nextCustomFields[name];
   const nextExcluded = Array.from(new Set([...(space.excludedCustomFields || []), name]));
@@ -176,6 +177,7 @@ function restoreCustomField(spaceKey, fieldName) {
   const space = getSpace(spaceKey);
   if (!space) return null;
   const name = fieldName.trim().toLowerCase();
+  if (!name) return null;
   const nextExcluded = (space.excludedCustomFields || []).filter((n) => n !== name);
   const next = { ...space };
   if (nextExcluded.length > 0) next.excludedCustomFields = nextExcluded;

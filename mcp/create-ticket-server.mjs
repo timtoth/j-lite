@@ -116,8 +116,8 @@ async function handleDiscover(args) {
 async function handleRemoveCustomField(args) {
   const spaceKey = args?.space_key;
   const fieldName = args?.field_name;
-  if (!spaceKey) throw new Error("space_key is required");
-  if (!fieldName) throw new Error("field_name is required");
+  if (typeof spaceKey !== "string" || !spaceKey.trim()) throw new Error("space_key is required");
+  if (typeof fieldName !== "string" || !fieldName.trim()) throw new Error("field_name is required");
   const updated = config.excludeCustomField(spaceKey, fieldName);
   if (!updated) throw new Error(`Unknown space: ${spaceKey}`);
   return { content: [{ type: "text", text: JSON.stringify(updated) }] };
