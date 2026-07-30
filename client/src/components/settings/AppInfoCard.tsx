@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import { UpdateStatus } from "../../global";
+import { CircleArrowUp, CircleCheck, CircleX, LoaderCircle } from "lucide-react";
+import { describeUpdateStatus, UpdateStatusIcon } from "./update-status-view";
+
+const STATUS_ICONS: Record<UpdateStatusIcon, typeof CircleCheck> = {
+  check: CircleCheck,
+  x: CircleX,
+  "arrow-up": CircleArrowUp,
+  loader: LoaderCircle,
+};
 
 export function AppInfoCard() {
   const [version, setVersion] = useState<string | null>(null);
@@ -46,29 +55,40 @@ export function AppInfoCard() {
   const applyLabel =
     isReady && status.action === "restart" ? "Restart to Update" : "Download";
 
+  const statusView = describeUpdateStatus(status);
+  const StatusIcon = statusView ? STATUS_ICONS[statusView.icon] : null;
+
   return (
     <div>
-      <div className="settings-row">
+      <div className="settings-version-row">
         <span className="settings-row__label">Version</span>
-        <span className="settings-row__value">{version ?? "…"}</span>
+        <span className="settings-version-row__number">{version ?? "…"}</span>
+
+        {statusView && StatusIcon && (
+          <span
+            className="settings-version-row__status"
+            style={{ color: statusView.color }}
+            title={statusView.title}
+          >
+            <StatusIcon
+              size={15}
+              strokeWidth={2}
+              className={statusView.spin ? "tc-spin" : undefined}
+              aria-hidden="true"
+            />
+            {statusView.label}
+          </span>
+        )}
+
+        <button
+          type="button"
+          className="settings-discover-btn settings-version-row__btn"
+          onClick={handleCheck}
+          disabled={checking || status?.state === "downloading"}
+        >
+          {checking ? "Checking…" : "Check for Updates"}
+        </button>
       </div>
-
-      <button
-        type="button"
-        className="settings-discover-btn"
-        onClick={handleCheck}
-        disabled={checking || status?.state === "downloading"}
-      >
-        {checking ? "Checking…" : "Check for Updates"}
-      </button>
-
-      {status?.state === "up-to-date" && (
-        <div className="settings-success">✓ You're up to date.</div>
-      )}
-
-      {status?.state === "downloading" && (
-        <div className="settings-hint">Downloading update…</div>
-      )}
 
       {isReady && (
         <div className="update-available-banner">

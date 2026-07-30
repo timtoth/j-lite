@@ -816,6 +816,44 @@ body {
   width: 100%;
 }
 
+/* App Info: label, version, status, and the check button on one line. */
+.settings-version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.settings-version-row__number {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8e8f0;
+}
+
+.settings-version-row__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.settings-version-row__btn {
+  margin-left: auto;
+}
+
+@keyframes tc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tc-spin {
+  animation: tc-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-spin { animation: none; }
+}
+
 .status-pill {
   display: inline-block;
   padding: 2px 8px;
