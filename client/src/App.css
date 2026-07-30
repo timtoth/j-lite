@@ -134,11 +134,6 @@ body {
   color: #fff;
 }
 
-.refresh-btn__icon {
-  font-size: 1rem;
-  line-height: 1;
-}
-
 .ticket-list {
   flex: 1;
   overflow-y: auto;
@@ -185,9 +180,11 @@ body {
   border: none;
   color: #8888a0;
   cursor: pointer;
-  font-size: 0.75rem;
   padding: 2px 4px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s, color 0.15s;
 }
 
@@ -215,6 +212,9 @@ body {
 .collapsible__inner {
   overflow: hidden;
   min-height: 0;
+}
+.collapsible.is-open > .collapsible__inner {
+  padding-top: 12px;
 }
 @media (prefers-reduced-motion: reduce) {
   .collapsible { transition: none; }
@@ -709,7 +709,6 @@ body {
   height: 32px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -756,7 +755,6 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
 }
 
 .settings-card__title {
@@ -764,10 +762,14 @@ body {
   font-weight: 600;
   color: #d0d0e0;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .settings-card__header .settings-card__title {
   margin-bottom: 0;
+  font-size: 1.05rem;
 }
 
 .settings-card__title-btn {
@@ -817,6 +819,47 @@ body {
 
 .settings-row__control .folder-select {
   width: 100%;
+}
+
+/* App Info: label, version, status, and the check button on one line. */
+.settings-version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  flex-wrap: wrap;
+}
+
+.settings-version-row__number {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8e8f0;
+}
+
+.settings-version-row__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.settings-version-row__btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@keyframes tc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.tc-spin {
+  animation: tc-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-spin { animation: none; }
 }
 
 .status-pill {
@@ -1090,14 +1133,12 @@ body {
 .space-accordion__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 500;
 }
 
 .settings-chevron {
-  font-size: 0.7rem;
   color: #a8b0b9;
-  display: inline-block;
   transition: transform 0.22s ease;
 }
 .settings-chevron.is-open {
@@ -1122,11 +1163,13 @@ body {
   background: none;
   border: none;
   color: #8b94a3;
-  font-size: 0.95rem;
   padding: 2px 6px;
   border-radius: 4px;
   cursor: pointer;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s, background 0.15s;
 }
 
@@ -1267,12 +1310,15 @@ body {
   background: none;
   border: none;
   color: #8b94a3;
-  font-size: 0.85rem;
   padding: 1px 4px;
   margin-left: 6px;
   border-radius: 4px;
   cursor: pointer;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
   transition: color 0.15s, background 0.15s;
 }
 

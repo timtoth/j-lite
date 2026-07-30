@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { Epic, EpicChild } from "../types";
 import { fetchEpicChildren } from "../api";
 import { StatusBadge } from "./StatusBadge";
@@ -44,7 +45,7 @@ export const EpicCard = memo(function EpicCard({ epic }: { epic: Epic }) {
           onClick={toggleChildren}
           title="Show child tickets"
         >
-          &#9654;
+          <ChevronRight size={14} strokeWidth={2.25} aria-hidden="true" />
         </button>
         <div className="ticket-summary">{epic.title}</div>
       </div>
