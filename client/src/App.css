@@ -212,6 +212,8 @@ body {
 .collapsible__inner {
   overflow: hidden;
   min-height: 0;
+}
+.collapsible.is-open > .collapsible__inner {
   padding-top: 12px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -825,6 +827,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 6px 0;
+  flex-wrap: wrap;
 }
 
 .settings-version-row__number {
@@ -843,6 +846,8 @@ body {
 
 .settings-version-row__btn {
   margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 @keyframes tc-spin {
@@ -1133,9 +1138,7 @@ body {
 }
 
 .settings-chevron {
-  font-size: 0.7rem;
   color: #a8b0b9;
-  display: inline-block;
   transition: transform 0.22s ease;
 }
 .settings-chevron.is-open {

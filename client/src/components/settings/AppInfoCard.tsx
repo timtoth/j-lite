@@ -69,6 +69,7 @@ export function AppInfoCard() {
             className="settings-version-row__status"
             style={{ color: statusView.color }}
             title={statusView.title}
+            role="status"
           >
             <StatusIcon
               size={15}

@@ -33,6 +33,7 @@ test("describeUpdateStatus reports an available update in amber", () => {
   assert.equal(view.icon, "arrow-up");
   assert.equal(view.label, "Update Available");
   assert.equal(view.color, "#e6c25a");
+  assert.equal(view.spin, false);
 });
 
 test("describeUpdateStatus treats the open-link ready variant the same", () => {
