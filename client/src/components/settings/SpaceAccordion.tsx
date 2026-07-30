@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Trash2 } from "lucide-react";
 import { JiraSpace } from "../../types";
 import { updateJiraSpace, deleteJiraSpace, removeCustomField, restoreCustomField } from "../../api";
 
@@ -163,7 +163,7 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
               aria-label={`Remove space ${spaceKey}`}
               title="Remove space"
             >
-              🗑
+              <Trash2 size={15} strokeWidth={2} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -231,7 +231,7 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
                       aria-label={`Remove custom field ${name}`}
                       title="Remove custom field"
                     >
-                      🗑
+                      <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
                     </button>
                   </span>
                 </div>
