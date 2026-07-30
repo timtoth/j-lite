@@ -8,6 +8,9 @@ client/.vite/
 
 # Local Claude Code overrides
 .claude/settings.local.json
+.claude/settings.json
+.claude/hooks/
+.claude/worktrees/
 .superpowers/
 
 # Local-only docs (plans, specs, debugging screenshots)
