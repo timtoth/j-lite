@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { JiraSpace } from "../../types";
 import { updateJiraSpace, deleteJiraSpace, removeCustomField, restoreCustomField } from "../../api";
 
@@ -121,7 +122,12 @@ export function SpaceAccordion({ spaceKey, space, onRefresh, onUpdate, onRemove 
     <div className="space-accordion">
       <div className="space-accordion__header" onClick={() => setOpen(!open)}>
         <div className="space-accordion__title">
-          <span className={`settings-chevron${open ? " is-open" : ""}`}>▶</span>
+          <ChevronRight
+            className={`settings-chevron${open ? " is-open" : ""}`}
+            size={15}
+            strokeWidth={2.25}
+            aria-hidden="true"
+          />
           {spaceKey}
         </div>
         <div className="space-accordion__header-right">

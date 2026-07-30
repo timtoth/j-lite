@@ -134,11 +134,6 @@ body {
   color: #fff;
 }
 
-.refresh-btn__icon {
-  font-size: 1rem;
-  line-height: 1;
-}
-
 .ticket-list {
   flex: 1;
   overflow-y: auto;
@@ -185,9 +180,11 @@ body {
   border: none;
   color: #8888a0;
   cursor: pointer;
-  font-size: 0.75rem;
   padding: 2px 4px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s, color 0.15s;
 }
 

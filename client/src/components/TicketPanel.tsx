@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { RefreshCw, Settings as SettingsIcon } from "lucide-react";
 import { Ticket } from "../types";
 import { fetchTickets } from "../api";
 import { TicketCard } from "./TicketCard";
@@ -65,7 +66,7 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
             className="refresh-btn refresh-btn--primary"
             onClick={handleRefresh}
           >
-            <span className="refresh-btn__icon" aria-hidden="true">↻</span>
+            <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
             Refresh
           </button>
           <button
@@ -74,7 +75,7 @@ export function TicketPanel({ refreshKey, onRefresh }: Props) {
             aria-label="Open settings"
             title="Settings"
           >
-            ⚙
+            <SettingsIcon size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
       </div>

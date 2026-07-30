@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 
 interface Props {
   title: string;
@@ -20,8 +21,12 @@ export function SettingsSection({ title, defaultOpen, headerRight, children }: P
           aria-expanded={open}
         >
           <h2 className="settings-card__title">
-            <span className={`settings-chevron${open ? " is-open" : ""}`}>▶</span>
-            {" "}
+            <ChevronRight
+              className={`settings-chevron${open ? " is-open" : ""}`}
+              size={15}
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
             {title}
           </h2>
         </button>

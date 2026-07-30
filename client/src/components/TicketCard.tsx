@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { Ticket } from "../types";
 import { fetchDescription } from "../api";
 import { StatusBadge } from "./StatusBadge";
@@ -44,7 +45,7 @@ export const TicketCard = memo(function TicketCard({ ticket }: { ticket: Ticket 
           onClick={toggleDescription}
           title="Show description"
         >
-          &#9654;
+          <ChevronRight size={14} strokeWidth={2.25} aria-hidden="true" />
         </button>
         <div className="ticket-summary">{ticket.title}</div>
       </div>
