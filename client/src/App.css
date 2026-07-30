@@ -212,6 +212,7 @@ body {
 .collapsible__inner {
   overflow: hidden;
   min-height: 0;
+  padding-top: 12px;
 }
 @media (prefers-reduced-motion: reduce) {
   .collapsible { transition: none; }
@@ -752,7 +753,6 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
 }
 
 .settings-card__title {
@@ -760,10 +760,14 @@ body {
   font-weight: 600;
   color: #d0d0e0;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .settings-card__header .settings-card__title {
   margin-bottom: 0;
+  font-size: 1.05rem;
 }
 
 .settings-card__title-btn {
@@ -1124,7 +1128,7 @@ body {
 .space-accordion__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 500;
 }
 
