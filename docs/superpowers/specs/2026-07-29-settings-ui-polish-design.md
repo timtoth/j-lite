@@ -101,7 +101,9 @@ Below the row, unchanged:
 - The red `.settings-error` box, so the full error message stays readable. The
   inline `CircleX` also carries the message as a `title` attribute.
 
-`.settings-success` becomes unused and is deleted.
+`.settings-success` is no longer used by App Info, but the rule **stays** — it is
+also used by the "Setup Complete" banner at `settings/JiraProjectCard.tsx:73`.
+(Corrected during implementation; the original spec wrongly called it unused.)
 
 ## 4. Accordion spacing
 

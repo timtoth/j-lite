@@ -542,7 +542,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `client/src/components/settings/AppInfoCard.tsx` (rewrite the returned JSX)
-- Modify: `client/src/App.css` (add `.settings-version-row` and friends; delete `.settings-success`)
+- Modify: `client/src/App.css` (add `.settings-version-row` and friends; `.settings-success` stays — see Step 3)
 
 **Interfaces:**
 - Consumes: `describeUpdateStatus` from Task 3; `lucide-react` from Task 1; the existing `window.tc` API (`getAppVersion`, `checkForUpdates`, `applyUpdate`, `onUpdateStatus`) unchanged.
@@ -729,31 +729,17 @@ In `client/src/App.css`, add immediately after the `.settings-row__control .fold
 
 The `gap: 10px` sits between the label and the number as well, which is what "adjacent" means here — a flex gap, not zero space. If it reads too loose in the Task 7 visual check, the fix is `gap: 8px` on the row plus a tighter pairing, not removing the gap.
 
-- [ ] **Step 3: Delete the now-unused `.settings-success` rule**
+- [ ] **Step 3: Leave the `.settings-success` rule in place**
 
-Still in `client/src/App.css`, delete:
+**Corrected during implementation.** This step originally called for deleting `.settings-success` on the grounds that App Info was its only consumer. That was wrong: `settings/JiraProjectCard.tsx:73` also uses it for the "Setup Complete, start using the app!" banner. The rule stays exactly as it is.
 
-```css
-.settings-success {
-  background: rgba(46, 160, 67, 0.12);
-  border: 1px solid rgba(46, 160, 67, 0.45);
-  color: #7ee2a0;
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-align: center;
-}
-```
-
-- [ ] **Step 4: Confirm nothing else used that class**
+- [ ] **Step 4: Confirm the class is still referenced, and only from JiraProjectCard**
 
 ```bash
 grep -rn "settings-success" client/src/ | grep -v node_modules
 ```
 
-Expected: no output. If anything still references it, restore the rule and report the conflict instead of deleting.
+Expected: exactly two hits — the rule in `client/src/App.css` and the usage at `client/src/components/settings/JiraProjectCard.tsx:73`. No hit inside `AppInfoCard.tsx`, since the inline status slot replaces its former use there.
 
 - [ ] **Step 5: Verify the build passes**
 
